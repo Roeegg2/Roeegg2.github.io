@@ -2,45 +2,45 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Series on My New Hugo Site</title>
-    <link>http://localhost:42897/series/</link>
+    <link>http://localhost:1313/series/</link>
     <description>Recent content in Series on My New Hugo Site</description>
     <generator>Hugo</generator>
     <language>en-us</language>
     <lastBuildDate>Tue, 23 Apr 2024 15:13:25 +0300</lastBuildDate>
-    <atom:link href="http://localhost:42897/series/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/series/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>The NES Internals Series: chapter 5 - The Standard Controller</title>
-      <link>http://localhost:42897/series/nes-internals/controls/</link>
+      <link>http://localhost:1313/series/nes-internals/controls/</link>
       <pubDate>Tue, 23 Apr 2024 15:13:25 +0300</pubDate>
-      <guid>http://localhost:42897/series/nes-internals/controls/</guid>
+      <guid>http://localhost:1313/series/nes-internals/controls/</guid>
       <description>&lt;p&gt;These are pretty straight forward.&lt;/p&gt;&#xA;&lt;h1 id=&#34;for-myself&#34;&gt;for myself&lt;/h1&gt;&#xA;&lt;p&gt;NES has 2 controller ports, and a rarely used 48 pin expansion port underneath&lt;/p&gt;&#xA;&lt;p&gt;&lt;strong&gt;NES IO ports&lt;/strong&gt;&#xA;1 output port, 3 bits, accesible by writing the bottom 3 bits of 4016&lt;/p&gt;&#xA;&lt;p&gt;2 input ports, each is 5 bits wide. accesible by reading the bottom 5 bits of 4016 and 4017&#xA;reading these 2 ports activate pins /OE1 and /OE2&lt;/p&gt;&#xA;&lt;p&gt;&lt;strong&gt;the standard NES controller dataline&lt;/strong&gt;&lt;/p&gt;</description>
     </item>
     <item>
       <title>The NES Internals Series: chapter 4 - Game Cartrdiges &amp; Mappers</title>
-      <link>http://localhost:42897/series/nes-internals/cart-and-mappers/</link>
+      <link>http://localhost:1313/series/nes-internals/cart-and-mappers/</link>
       <pubDate>Mon, 22 Apr 2024 15:13:25 +0300</pubDate>
-      <guid>http://localhost:42897/series/nes-internals/cart-and-mappers/</guid>
+      <guid>http://localhost:1313/series/nes-internals/cart-and-mappers/</guid>
       <description>&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;&#xA;&lt;p&gt;If you haven&amp;rsquo;t checked out my PPU and CPU writeups, I recommend you go check them out before reading this part, as I&amp;rsquo;m building on top of things I explained there.&lt;/p&gt;&#xA;&lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;strong&gt;ROM&lt;/strong&gt; - a type of memory (which unlike RAM) its data cannot change (this is why its also called ROM - &amp;ldquo;read only memory&amp;rdquo;. as you can only read data from it). The data in it is set once by the manufacturer, and cannot be changed again by the CPU.&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;h2 id=&#34;what-is-a-cartridge&#34;&gt;What is a cartridge?&lt;/h2&gt;&#xA;&lt;p&gt;Modern consoles have full operating systems, and some firmware to boot the operating system (like BIOS or UEFI).&#xA;The NES doesn&amp;rsquo;t have any of that - it uses cartridges.&#xA;These are essentially just memory chips (usually ROM, but sometimes RAM) which contains the data of the game.&#xA;The cartridge is made up of (in order):&lt;/p&gt;</description>
     </item>
     <item>
       <title>The NES Internals Series: chapter 3 - PPU Foreground Rendering</title>
-      <link>http://localhost:42897/series/nes-internals/ppu-foreground/</link>
+      <link>http://localhost:1313/series/nes-internals/ppu-foreground/</link>
       <pubDate>Sat, 13 Apr 2024 15:13:25 +0300</pubDate>
-      <guid>http://localhost:42897/series/nes-internals/ppu-foreground/</guid>
+      <guid>http://localhost:1313/series/nes-internals/ppu-foreground/</guid>
       <description>&lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&lt;strong&gt;DMA&lt;/strong&gt; - a component in a computer system which can access the system RAM, and other storage areas directly and move data between them without needing the CPU.&#xA;As always, if you want to understand better, go look it up online&lt;/li&gt;&#xA;&lt;/ul&gt;&#xA;&lt;h2 id=&#34;oam&#34;&gt;OAM&lt;/h2&gt;&#xA;&lt;p&gt;The OAM (object attribute memory) is the place where sprites are stored. It has the size of 256 bytes, and can store 64 sprites.&#xA;Using a short calculation, we get that each sprite entry is the size of &lt;code&gt;256/64 = 4 Bytes&lt;/code&gt;.&lt;/p&gt;</description>
     </item>
     <item>
       <title>The NES Internals Series: chapter 2 - PPU Background</title>
-      <link>http://localhost:42897/series/nes-internals/ppu-background/</link>
+      <link>http://localhost:1313/series/nes-internals/ppu-background/</link>
       <pubDate>Sat, 06 Apr 2024 15:13:25 +0300</pubDate>
-      <guid>http://localhost:42897/series/nes-internals/ppu-background/</guid>
+      <guid>http://localhost:1313/series/nes-internals/ppu-background/</guid>
       <description>&lt;h2 id=&#34;prologue&#34;&gt;Prologue&lt;/h2&gt;&#xA;&lt;p&gt;If you haven&amp;rsquo;t read the CPU writeup yet I highly recommend you go check that writeup first, as I&amp;rsquo;m building on top of stuff presented there. You can check it out &lt;a href=&#34;https://roeegg2.github.io/nes-internals-blog/cpu&#34;&gt;here&lt;/a&gt;&lt;/p&gt;&#xA;&lt;p&gt;When I started learning how the NES PPU works, one of the things that were very difficult for me was that my mindset was that things are done in the simplest most elegant and logical way.&#xA;If you think the same, please yeet that mindset into a garbage can, because that&amp;rsquo;s not the case here!&lt;/p&gt;</description>
     </item>
     <item>
       <title>The NES Internals Series: chapter 1 - The CPU</title>
-      <link>http://localhost:42897/series/nes-internals/cpu/</link>
+      <link>http://localhost:1313/series/nes-internals/cpu/</link>
       <pubDate>Thu, 14 Mar 2024 15:13:25 +0300</pubDate>
-      <guid>http://localhost:42897/series/nes-internals/cpu/</guid>
+      <guid>http://localhost:1313/series/nes-internals/cpu/</guid>
       <description>&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;&#xA;&lt;p&gt;The NES has a slightly modified version of the MOS 6502 CPU.&#xA;This CPU was quite popular back in the day so there is plenty of detailed documentation about it online.&lt;/p&gt;&#xA;&lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;&#xA;&lt;p&gt;We won&amp;rsquo;t be using any fancy emulation/NES terminology here, just basic computer stuff.&#xA;I will explain some terms very simply, if you want a more in depth explanation you can look these things up online.&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&#xA;&lt;p&gt;&lt;strong&gt;Registers&lt;/strong&gt; - small and fast areas of storage the CPU can fetch data from and write data to.&lt;/p&gt;</description>
     </item>
   </channel>

@@ -2,23 +2,23 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>My New Hugo Site</title>
-    <link>http://localhost:42897/</link>
+    <link>http://localhost:1313/</link>
     <description>Recent content on My New Hugo Site</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Tue, 23 Apr 2024 15:13:25 +0300</lastBuildDate>
     
-        <atom:link href="http://localhost:42897/index.xml" rel="self" type="application/rss+xml" />
+        <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
     
     
     
         <item>
         <title>The NES Internals Series: chapter 5 - The Standard Controller</title>
-        <link>http://localhost:42897/series/nes-internals/controls/</link>
+        <link>http://localhost:1313/series/nes-internals/controls/</link>
         <pubDate>Tue, 23 Apr 2024 15:13:25 +0300</pubDate>
         
-        <guid>http://localhost:42897/series/nes-internals/controls/</guid>
-        <description>My New Hugo Site http://localhost:42897/series/nes-internals/controls/ -&lt;p&gt;These are pretty straight forward.&lt;/p&gt;
+        <guid>http://localhost:1313/series/nes-internals/controls/</guid>
+        <description>My New Hugo Site http://localhost:1313/series/nes-internals/controls/ -&lt;p&gt;These are pretty straight forward.&lt;/p&gt;
 &lt;h1 id=&#34;for-myself&#34;&gt;for myself&lt;/h1&gt;
 &lt;p&gt;NES has 2 controller ports, and a rarely used 48 pin expansion port underneath&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;NES IO ports&lt;/strong&gt;
@@ -47,18 +47,18 @@ in order to get the status of controller 1 and controller 2, you must write to 4
 &lt;p&gt;Write 1 to $4016 to signal the controller to poll its input
 Write 0 to $4016 to finish the poll
 Read polled data one bit at a time from $4016 or $4017&lt;/p&gt;
-- http://localhost:42897/series/nes-internals/controls/ - </description>
+- http://localhost:1313/series/nes-internals/controls/ - </description>
         </item>
     
     
     
         <item>
         <title>The NES Internals Series: chapter 4 - Game Cartrdiges &amp; Mappers</title>
-        <link>http://localhost:42897/series/nes-internals/cart-and-mappers/</link>
+        <link>http://localhost:1313/series/nes-internals/cart-and-mappers/</link>
         <pubDate>Mon, 22 Apr 2024 15:13:25 +0300</pubDate>
         
-        <guid>http://localhost:42897/series/nes-internals/cart-and-mappers/</guid>
-        <description>My New Hugo Site http://localhost:42897/series/nes-internals/cart-and-mappers/ -&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
+        <guid>http://localhost:1313/series/nes-internals/cart-and-mappers/</guid>
+        <description>My New Hugo Site http://localhost:1313/series/nes-internals/cart-and-mappers/ -&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
 &lt;p&gt;If you haven&amp;rsquo;t checked out my PPU and CPU writeups, I recommend you go check them out before reading this part, as I&amp;rsquo;m building on top of things I explained there.&lt;/p&gt;
 &lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;
 &lt;ul&gt;
@@ -120,18 +120,18 @@ CHR data
 Well although the iNES format was more than enough most of the time, it could be better (contain data in a better order, provide some more information iNES was missing)&lt;/p&gt;
 &lt;p&gt;99% of game ROMs I&amp;rsquo;ve came across support iNES, so in my opinion supporting NES 2.0 isn&amp;rsquo;t that big of a deal. Although iNES 2.0 is implemented as an extension, and without many additions to the original iNES - not as a completely new format so adding support for it isn&amp;rsquo;t that hard.&lt;/p&gt;
 &lt;p&gt;And as always, for more information check out the NESdev wiki on the &lt;a href=&#34;https://www.nesdev.org/wiki/INES&#34;&gt;iNES and NES 2.0&lt;/a&gt;&lt;/p&gt;
-- http://localhost:42897/series/nes-internals/cart-and-mappers/ - </description>
+- http://localhost:1313/series/nes-internals/cart-and-mappers/ - </description>
         </item>
     
     
     
         <item>
         <title>The NES Internals Series: chapter 3 - PPU Foreground Rendering</title>
-        <link>http://localhost:42897/series/nes-internals/ppu-foreground/</link>
+        <link>http://localhost:1313/series/nes-internals/ppu-foreground/</link>
         <pubDate>Sat, 13 Apr 2024 15:13:25 +0300</pubDate>
         
-        <guid>http://localhost:42897/series/nes-internals/ppu-foreground/</guid>
-        <description>My New Hugo Site http://localhost:42897/series/nes-internals/ppu-foreground/ -&lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;
+        <guid>http://localhost:1313/series/nes-internals/ppu-foreground/</guid>
+        <description>My New Hugo Site http://localhost:1313/series/nes-internals/ppu-foreground/ -&lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;DMA&lt;/strong&gt; - a component in a computer system which can access the system RAM, and other storage areas directly and move data between them without needing the CPU.
 As always, if you want to understand better, go look it up online&lt;/li&gt;
@@ -182,18 +182,18 @@ So if Sprite A overlaps Sprite B at some pixel, and lets say Sprite A is at OAM 
 &lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; Yes, if a sprites priority bit is 1, it means it should be &lt;strong&gt;behind&lt;/strong&gt; the background. If it&amp;rsquo;s 0 then it should be &lt;strong&gt;infront&lt;/strong&gt; of background.&lt;/p&gt;
 &lt;/blockquote&gt;
 &lt;p&gt;These weird behaviors have let NES game developers to create some unique and creative visual effects.&lt;/p&gt;
-- http://localhost:42897/series/nes-internals/ppu-foreground/ - </description>
+- http://localhost:1313/series/nes-internals/ppu-foreground/ - </description>
         </item>
     
     
     
         <item>
         <title>The NES Internals Series: chapter 2 - PPU Background</title>
-        <link>http://localhost:42897/series/nes-internals/ppu-background/</link>
+        <link>http://localhost:1313/series/nes-internals/ppu-background/</link>
         <pubDate>Sat, 06 Apr 2024 15:13:25 +0300</pubDate>
         
-        <guid>http://localhost:42897/series/nes-internals/ppu-background/</guid>
-        <description>My New Hugo Site http://localhost:42897/series/nes-internals/ppu-background/ -&lt;h2 id=&#34;prologue&#34;&gt;Prologue&lt;/h2&gt;
+        <guid>http://localhost:1313/series/nes-internals/ppu-background/</guid>
+        <description>My New Hugo Site http://localhost:1313/series/nes-internals/ppu-background/ -&lt;h2 id=&#34;prologue&#34;&gt;Prologue&lt;/h2&gt;
 &lt;p&gt;If you haven&amp;rsquo;t read the CPU writeup yet I highly recommend you go check that writeup first, as I&amp;rsquo;m building on top of stuff presented there. You can check it out &lt;a href=&#34;https://roeegg2.github.io/nes-internals-blog/cpu&#34;&gt;here&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;When I started learning how the NES PPU works, one of the things that were very difficult for me was that my mindset was that things are done in the simplest most elegant and logical way.
 If you think the same, please yeet that mindset into a garbage can, because that&amp;rsquo;s not the case here!&lt;/p&gt;
@@ -567,18 +567,18 @@ lda #$5E (%01011110)
 sta $2005
 &lt;/code&gt;&lt;/pre&gt;&lt;p&gt;That is probably one of most complicated aspects of the PPU, and a crucial one so make sure you
 understand it well.&lt;/p&gt;
-- http://localhost:42897/series/nes-internals/ppu-background/ - </description>
+- http://localhost:1313/series/nes-internals/ppu-background/ - </description>
         </item>
     
     
     
         <item>
         <title>The NES Internals Series: chapter 1 - The CPU</title>
-        <link>http://localhost:42897/series/nes-internals/cpu/</link>
+        <link>http://localhost:1313/series/nes-internals/cpu/</link>
         <pubDate>Thu, 14 Mar 2024 15:13:25 +0300</pubDate>
         
-        <guid>http://localhost:42897/series/nes-internals/cpu/</guid>
-        <description>My New Hugo Site http://localhost:42897/series/nes-internals/cpu/ -&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
+        <guid>http://localhost:1313/series/nes-internals/cpu/</guid>
+        <description>My New Hugo Site http://localhost:1313/series/nes-internals/cpu/ -&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
 &lt;p&gt;The NES has a slightly modified version of the MOS 6502 CPU.
 This CPU was quite popular back in the day so there is plenty of detailed documentation about it online.&lt;/p&gt;
 &lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;
@@ -794,18 +794,18 @@ The 6502 has 2 buses:&lt;/p&gt;
 &lt;p&gt;The internal buses are part of the process of communicating with the system bus that connects all devices on the system. (the internal data bus is connected to the system data bus, and the internal address bus is actually PART of the system address bus)&lt;/p&gt;
 &lt;h2 id=&#34;final-words&#34;&gt;Final words&lt;/h2&gt;
 &lt;p&gt;Hope this writeup helped understanding how the CPU of the NES works. I know I say this every writeup, but even though it is very hard to understand as a beginner, I can&amp;rsquo;t recommend the NESdev wiki enough. It contains everything emu devs or game devs of the NES need to know&lt;/p&gt;
-- http://localhost:42897/series/nes-internals/cpu/ - </description>
+- http://localhost:1313/series/nes-internals/cpu/ - </description>
         </item>
     
     
     
         <item>
         <title>The PLT &#43; GOT, Lazy binding &#43; Eager binding</title>
-        <link>http://localhost:42897/posts/elf-plt-and-got/</link>
+        <link>http://localhost:1313/posts/elf-plt-and-got/</link>
         <pubDate>Wed, 06 Mar 2024 00:00:00 +0000</pubDate>
         
-        <guid>http://localhost:42897/posts/elf-plt-and-got/</guid>
-        <description>My New Hugo Site http://localhost:42897/posts/elf-plt-and-got/ -&lt;h1 id=&#34;prologue&#34;&gt;Prologue&lt;/h1&gt;
+        <guid>http://localhost:1313/posts/elf-plt-and-got/</guid>
+        <description>My New Hugo Site http://localhost:1313/posts/elf-plt-and-got/ -&lt;h1 id=&#34;prologue&#34;&gt;Prologue&lt;/h1&gt;
 &lt;p&gt;This is just a short post explaining the GOT and PLT in the ELF format. No bullshit, just explanation.&lt;/p&gt;
 &lt;p&gt;Any assembly here will be x86_64, Intel syntax, but it&amp;rsquo;s the same jist for different architectures as well.&lt;/p&gt;
 &lt;h1 id=&#34;plt--got-explained-in-a-nutshell&#34;&gt;PLT + GOT explained in a nutshell&lt;/h1&gt;
@@ -937,18 +937,18 @@ Consider the following C program:&lt;/p&gt;
     11bc:       c9                      leave
     11bd:       c3                      ret
 &lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Let&amp;rsquo;s take &lt;code&gt;printf&lt;/code&gt; as an example:&lt;/p&gt;
-- http://localhost:42897/posts/elf-plt-and-got/ - </description>
+- http://localhost:1313/posts/elf-plt-and-got/ - </description>
         </item>
     
     
     
         <item>
         <title>Summary of Ulrich Drepper&#39;s legendary tls.pdf</title>
-        <link>http://localhost:42897/posts/tls/</link>
+        <link>http://localhost:1313/posts/tls/</link>
         <pubDate>Wed, 10 Jan 2024 00:00:00 +0000</pubDate>
         
-        <guid>http://localhost:42897/posts/tls/</guid>
-        <description>My New Hugo Site http://localhost:42897/posts/tls/ -&lt;h2 id=&#34;disclaimer&#34;&gt;Disclaimer:&lt;/h2&gt;
+        <guid>http://localhost:1313/posts/tls/</guid>
+        <description>My New Hugo Site http://localhost:1313/posts/tls/ -&lt;h2 id=&#34;disclaimer&#34;&gt;Disclaimer:&lt;/h2&gt;
 &lt;ol&gt;
 &lt;li&gt;
 &lt;p&gt;The targeted audience of this document is dynamic linker &amp;amp; loader implementors, so important information for other tools (such as linkers and compilers) might be missing.&lt;/p&gt;
@@ -1206,7 +1206,7 @@ ation which can be performed by compiler-generated code which uses variant I. Bu
 cannot be done by the compiler for architectures following variant II and there is also
 a good reason to not do it: deferred allocation (see below). - don&amp;rsquo;t understand what this means&lt;/li&gt;
 &lt;/ul&gt;
-- http://localhost:42897/posts/tls/ - </description>
+- http://localhost:1313/posts/tls/ - </description>
         </item>
     
     
