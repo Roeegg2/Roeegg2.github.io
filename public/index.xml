@@ -6,81 +6,19 @@
     <description>Recent content on My New Hugo Site</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Mon, 13 May 2024 15:13:25 +0300</lastBuildDate>
+    <lastBuildDate>Tue, 23 Apr 2024 15:13:25 +0300</lastBuildDate>
     
         <atom:link href="http://localhost:42897/index.xml" rel="self" type="application/rss+xml" />
     
     
     
         <item>
-        <title>The PPU Foreground Rendering</title>
-        <link>http://localhost:42897/series/nes-internals/2024-05-13-ppu_foreground/</link>
-        <pubDate>Mon, 13 May 2024 15:13:25 +0300</pubDate>
-        
-        <guid>http://localhost:42897/series/nes-internals/2024-05-13-ppu_foreground/</guid>
-        <description>My New Hugo Site http://localhost:42897/series/nes-internals/2024-05-13-ppu_foreground/ -&lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;DMA&lt;/strong&gt; - a component in a computer system which can access the system RAM, and other storage areas directly and move data between them without needing the CPU.
-As always, if you want to understand better, go look it up online&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2 id=&#34;oam&#34;&gt;OAM&lt;/h2&gt;
-&lt;p&gt;The OAM (object attribute memory) is the place where sprites are stored. It has the size of 256 bytes, and can store 64 sprites.
-Using a short calculation, we get that each sprite entry is the size of &lt;code&gt;256/64 = 4 Bytes&lt;/code&gt;.&lt;/p&gt;
-&lt;p&gt;There is another memory area called secondary OAM, which can hold up to 8 sprites (32 bytes).
-Data is written to OAM, and then transfered over to secondary OAM, from which the sprites are actually drawn&lt;/p&gt;
-&lt;h3 id=&#34;byte-0&#34;&gt;Byte 0&lt;/h3&gt;
-&lt;p&gt;This byte contains the Y position of the sprite, counted from the top of the screen.
-The value here is actually subtracted by 1, to get the actual Y value of the sprite. I will explain the reasoning behind this later on.&lt;/p&gt;
-&lt;h3 id=&#34;byte-1&#34;&gt;Byte 1&lt;/h3&gt;
-&lt;p&gt;This byte contains the tile number to be used, to index into the pattern tables.
-Its use differs between 8x16 and 8x8:&lt;/p&gt;
-&lt;p&gt;From the background graphics chapter, we already know we know the PPU can address 2 pattern tables (&lt;code&gt;$0000-$0fff&lt;/code&gt; and &lt;code&gt;$1000-$1fff&lt;/code&gt;).
-For 8x8 sprites, the decision of which pattern table to use is given by bit 3 of PPUCTRL.
-For 8x16 sprites, bit 0 of the this byte, is used to select the pattern table.&lt;/p&gt;
-&lt;h3 id=&#34;byte-2&#34;&gt;Byte 2&lt;/h3&gt;
-&lt;p&gt;This byte contains some important attribute data about the sprite: palette group used, sprite priority, and whether the sprite should be rendered flipped (both vertically or horizontally)&lt;/p&gt;
-&lt;h3 id=&#34;byte-3&#34;&gt;Byte 3&lt;/h3&gt;
-&lt;p&gt;The X position of the sprite, counted from the left of the sprite (ie the first pixel)&lt;/p&gt;
-&lt;p&gt;Thats it! That&amp;rsquo;s how sprites are represented in the NES.&lt;/p&gt;
-&lt;h2 id=&#34;dma&#34;&gt;DMA&lt;/h2&gt;
-&lt;p&gt;Remember I said the PPU copies data from primary OAM into secondary OAM?
-Well the PPU has 2 options to perform these copies:&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;Copying using OAMADDR and OAMDATA&lt;/li&gt;
-&lt;li&gt;Copying using DMA&lt;/li&gt;
-&lt;/ol&gt;
-&lt;blockquote&gt;
-&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; In contrast to the usual way a the case of the NES, the CPU is actually halted while the DMA is copying data to secondary OAM, so it doesn&amp;rsquo;t have that advantage, but the copy is actually way faster using DMA (it takes 2 cycles to copy a byte using DMA, and the CPU has overhead of resolving the addressing mode, fetching the next instruction, etc.)&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;In order to instruct the DMA to activate, and copy the contents of &lt;em&gt;primary OAM&lt;/em&gt; into &lt;em&gt;secondary OAM&lt;/em&gt;, the programmer can write some value to the &lt;strong&gt;OAMDMA&lt;/strong&gt; register.
-After that register is written the CPU is halted and a copy takes place.&lt;/p&gt;
-&lt;h2 id=&#34;sprite-priority--overlapping&#34;&gt;Sprite priority &amp;amp; overlapping&lt;/h2&gt;
-&lt;p&gt;*As we&amp;rsquo;ve seen, the &lt;em&gt;PPU background&lt;/em&gt; and &lt;em&gt;PPU foreground&lt;/em&gt; rendering mechanism operates independently of each other.&lt;/p&gt;
-&lt;ol&gt;
-&lt;li&gt;So what happens when a sprite pixel overlaps a background pixel?&lt;/li&gt;
-&lt;li&gt;And if we&amp;rsquo;re already talking about overlapping, what happens if we have 2 sprites which overlap on some pixel?&lt;/li&gt;
-&lt;/ol&gt;
-&lt;h3 id=&#34;question-2-answer&#34;&gt;Question 2 answer:&lt;/h3&gt;
-&lt;p&gt;Sprite priority is determined by the position of the sprites in OAM - the lower the sprite position is (0, 1, 2) the higher it&amp;rsquo;s priority is.
-So if Sprite A overlaps Sprite B at some pixel, and lets say Sprite A is at OAM index 4, and Sprite B is at OAM index 20, then Sprite A &amp;ldquo;wins&amp;rdquo; and gets to have the pixel!&lt;/p&gt;
-&lt;h3 id=&#34;question-1-answer&#34;&gt;Question 1 answer:&lt;/h3&gt;
-&lt;p&gt;Quoted from the NESdev wiki: &lt;em&gt;&amp;ldquo;if the frontmost opaque sprite&amp;rsquo;s priority bit is true (1), an opaque background pixel is drawn in front of it.&amp;rdquo;&lt;/em&gt;&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; Yes, if a sprites priority bit is 1, it means it should be &lt;strong&gt;behind&lt;/strong&gt; the background. If it&amp;rsquo;s 0 then it should be &lt;strong&gt;infront&lt;/strong&gt; of background.&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;These weird behaviors have let NES game developers to create some unique and creative visual effects.&lt;/p&gt;
-- http://localhost:42897/series/nes-internals/2024-05-13-ppu_foreground/ - </description>
-        </item>
-    
-    
-    
-        <item>
-        <title>The Standard Controller</title>
-        <link>http://localhost:42897/series/nes-internals/2024-04-23-controls/</link>
+        <title>The NES Internals Series: chapter 5 - The Standard Controller</title>
+        <link>http://localhost:42897/series/nes-internals/controls/</link>
         <pubDate>Tue, 23 Apr 2024 15:13:25 +0300</pubDate>
         
-        <guid>http://localhost:42897/series/nes-internals/2024-04-23-controls/</guid>
-        <description>My New Hugo Site http://localhost:42897/series/nes-internals/2024-04-23-controls/ -&lt;p&gt;These are pretty straight forward.&lt;/p&gt;
+        <guid>http://localhost:42897/series/nes-internals/controls/</guid>
+        <description>My New Hugo Site http://localhost:42897/series/nes-internals/controls/ -&lt;p&gt;These are pretty straight forward.&lt;/p&gt;
 &lt;h1 id=&#34;for-myself&#34;&gt;for myself&lt;/h1&gt;
 &lt;p&gt;NES has 2 controller ports, and a rarely used 48 pin expansion port underneath&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;NES IO ports&lt;/strong&gt;
@@ -109,18 +47,18 @@ in order to get the status of controller 1 and controller 2, you must write to 4
 &lt;p&gt;Write 1 to $4016 to signal the controller to poll its input
 Write 0 to $4016 to finish the poll
 Read polled data one bit at a time from $4016 or $4017&lt;/p&gt;
-- http://localhost:42897/series/nes-internals/2024-04-23-controls/ - </description>
+- http://localhost:42897/series/nes-internals/controls/ - </description>
         </item>
     
     
     
         <item>
-        <title>The Game Cartrdige &amp; Mappers</title>
-        <link>http://localhost:42897/series/nes-internals/2024-04-22-cart-and-mappers/</link>
+        <title>The NES Internals Series: chapter 4 - Game Cartrdiges &amp; Mappers</title>
+        <link>http://localhost:42897/series/nes-internals/cart-and-mappers/</link>
         <pubDate>Mon, 22 Apr 2024 15:13:25 +0300</pubDate>
         
-        <guid>http://localhost:42897/series/nes-internals/2024-04-22-cart-and-mappers/</guid>
-        <description>My New Hugo Site http://localhost:42897/series/nes-internals/2024-04-22-cart-and-mappers/ -&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
+        <guid>http://localhost:42897/series/nes-internals/cart-and-mappers/</guid>
+        <description>My New Hugo Site http://localhost:42897/series/nes-internals/cart-and-mappers/ -&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
 &lt;p&gt;If you haven&amp;rsquo;t checked out my PPU and CPU writeups, I recommend you go check them out before reading this part, as I&amp;rsquo;m building on top of things I explained there.&lt;/p&gt;
 &lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;
 &lt;ul&gt;
@@ -182,18 +120,80 @@ CHR data
 Well although the iNES format was more than enough most of the time, it could be better (contain data in a better order, provide some more information iNES was missing)&lt;/p&gt;
 &lt;p&gt;99% of game ROMs I&amp;rsquo;ve came across support iNES, so in my opinion supporting NES 2.0 isn&amp;rsquo;t that big of a deal. Although iNES 2.0 is implemented as an extension, and without many additions to the original iNES - not as a completely new format so adding support for it isn&amp;rsquo;t that hard.&lt;/p&gt;
 &lt;p&gt;And as always, for more information check out the NESdev wiki on the &lt;a href=&#34;https://www.nesdev.org/wiki/INES&#34;&gt;iNES and NES 2.0&lt;/a&gt;&lt;/p&gt;
-- http://localhost:42897/series/nes-internals/2024-04-22-cart-and-mappers/ - </description>
+- http://localhost:42897/series/nes-internals/cart-and-mappers/ - </description>
         </item>
     
     
     
         <item>
-        <title>NES Internals Series chapter 2 - PPU Background</title>
-        <link>http://localhost:42897/series/nes-internals/2024-04-06-ppu-background/</link>
+        <title>The NES Internals Series: chapter 3 - PPU Foreground Rendering</title>
+        <link>http://localhost:42897/series/nes-internals/ppu-foreground/</link>
+        <pubDate>Sat, 13 Apr 2024 15:13:25 +0300</pubDate>
+        
+        <guid>http://localhost:42897/series/nes-internals/ppu-foreground/</guid>
+        <description>My New Hugo Site http://localhost:42897/series/nes-internals/ppu-foreground/ -&lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;DMA&lt;/strong&gt; - a component in a computer system which can access the system RAM, and other storage areas directly and move data between them without needing the CPU.
+As always, if you want to understand better, go look it up online&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;oam&#34;&gt;OAM&lt;/h2&gt;
+&lt;p&gt;The OAM (object attribute memory) is the place where sprites are stored. It has the size of 256 bytes, and can store 64 sprites.
+Using a short calculation, we get that each sprite entry is the size of &lt;code&gt;256/64 = 4 Bytes&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;There is another memory area called secondary OAM, which can hold up to 8 sprites (32 bytes).
+Data is written to OAM, and then transfered over to secondary OAM, from which the sprites are actually drawn&lt;/p&gt;
+&lt;h3 id=&#34;byte-0&#34;&gt;Byte 0&lt;/h3&gt;
+&lt;p&gt;This byte contains the Y position of the sprite, counted from the top of the screen.
+The value here is actually subtracted by 1, to get the actual Y value of the sprite. I will explain the reasoning behind this later on.&lt;/p&gt;
+&lt;h3 id=&#34;byte-1&#34;&gt;Byte 1&lt;/h3&gt;
+&lt;p&gt;This byte contains the tile number to be used, to index into the pattern tables.
+Its use differs between 8x16 and 8x8:&lt;/p&gt;
+&lt;p&gt;From the background graphics chapter, we already know we know the PPU can address 2 pattern tables (&lt;code&gt;$0000-$0fff&lt;/code&gt; and &lt;code&gt;$1000-$1fff&lt;/code&gt;).
+For 8x8 sprites, the decision of which pattern table to use is given by bit 3 of PPUCTRL.
+For 8x16 sprites, bit 0 of the this byte, is used to select the pattern table.&lt;/p&gt;
+&lt;h3 id=&#34;byte-2&#34;&gt;Byte 2&lt;/h3&gt;
+&lt;p&gt;This byte contains some important attribute data about the sprite: palette group used, sprite priority, and whether the sprite should be rendered flipped (both vertically or horizontally)&lt;/p&gt;
+&lt;h3 id=&#34;byte-3&#34;&gt;Byte 3&lt;/h3&gt;
+&lt;p&gt;The X position of the sprite, counted from the left of the sprite (ie the first pixel)&lt;/p&gt;
+&lt;p&gt;Thats it! That&amp;rsquo;s how sprites are represented in the NES.&lt;/p&gt;
+&lt;h2 id=&#34;dma&#34;&gt;DMA&lt;/h2&gt;
+&lt;p&gt;Remember I said the PPU copies data from primary OAM into secondary OAM?
+Well the PPU has 2 options to perform these copies:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Copying using OAMADDR and OAMDATA&lt;/li&gt;
+&lt;li&gt;Copying using DMA&lt;/li&gt;
+&lt;/ol&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; In contrast to the usual way a the case of the NES, the CPU is actually halted while the DMA is copying data to secondary OAM, so it doesn&amp;rsquo;t have that advantage, but the copy is actually way faster using DMA (it takes 2 cycles to copy a byte using DMA, and the CPU has overhead of resolving the addressing mode, fetching the next instruction, etc.)&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;In order to instruct the DMA to activate, and copy the contents of &lt;em&gt;primary OAM&lt;/em&gt; into &lt;em&gt;secondary OAM&lt;/em&gt;, the programmer can write some value to the &lt;strong&gt;OAMDMA&lt;/strong&gt; register.
+After that register is written the CPU is halted and a copy takes place.&lt;/p&gt;
+&lt;h2 id=&#34;sprite-priority--overlapping&#34;&gt;Sprite priority &amp;amp; overlapping&lt;/h2&gt;
+&lt;p&gt;*As we&amp;rsquo;ve seen, the &lt;em&gt;PPU background&lt;/em&gt; and &lt;em&gt;PPU foreground&lt;/em&gt; rendering mechanism operates independently of each other.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;So what happens when a sprite pixel overlaps a background pixel?&lt;/li&gt;
+&lt;li&gt;And if we&amp;rsquo;re already talking about overlapping, what happens if we have 2 sprites which overlap on some pixel?&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;question-2-answer&#34;&gt;Question 2 answer:&lt;/h3&gt;
+&lt;p&gt;Sprite priority is determined by the position of the sprites in OAM - the lower the sprite position is (0, 1, 2) the higher it&amp;rsquo;s priority is.
+So if Sprite A overlaps Sprite B at some pixel, and lets say Sprite A is at OAM index 4, and Sprite B is at OAM index 20, then Sprite A &amp;ldquo;wins&amp;rdquo; and gets to have the pixel!&lt;/p&gt;
+&lt;h3 id=&#34;question-1-answer&#34;&gt;Question 1 answer:&lt;/h3&gt;
+&lt;p&gt;Quoted from the NESdev wiki: &lt;em&gt;&amp;ldquo;if the frontmost opaque sprite&amp;rsquo;s priority bit is true (1), an opaque background pixel is drawn in front of it.&amp;rdquo;&lt;/em&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; Yes, if a sprites priority bit is 1, it means it should be &lt;strong&gt;behind&lt;/strong&gt; the background. If it&amp;rsquo;s 0 then it should be &lt;strong&gt;infront&lt;/strong&gt; of background.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;These weird behaviors have let NES game developers to create some unique and creative visual effects.&lt;/p&gt;
+- http://localhost:42897/series/nes-internals/ppu-foreground/ - </description>
+        </item>
+    
+    
+    
+        <item>
+        <title>The NES Internals Series: chapter 2 - PPU Background</title>
+        <link>http://localhost:42897/series/nes-internals/ppu-background/</link>
         <pubDate>Sat, 06 Apr 2024 15:13:25 +0300</pubDate>
         
-        <guid>http://localhost:42897/series/nes-internals/2024-04-06-ppu-background/</guid>
-        <description>My New Hugo Site http://localhost:42897/series/nes-internals/2024-04-06-ppu-background/ -&lt;h2 id=&#34;prologue&#34;&gt;Prologue&lt;/h2&gt;
+        <guid>http://localhost:42897/series/nes-internals/ppu-background/</guid>
+        <description>My New Hugo Site http://localhost:42897/series/nes-internals/ppu-background/ -&lt;h2 id=&#34;prologue&#34;&gt;Prologue&lt;/h2&gt;
 &lt;p&gt;If you haven&amp;rsquo;t read the CPU writeup yet I highly recommend you go check that writeup first, as I&amp;rsquo;m building on top of stuff presented there. You can check it out &lt;a href=&#34;https://roeegg2.github.io/nes-internals-blog/cpu&#34;&gt;here&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;When I started learning how the NES PPU works, one of the things that were very difficult for me was that my mindset was that things are done in the simplest most elegant and logical way.
 If you think the same, please yeet that mindset into a garbage can, because that&amp;rsquo;s not the case here!&lt;/p&gt;
@@ -567,18 +567,18 @@ lda #$5E (%01011110)
 sta $2005
 &lt;/code&gt;&lt;/pre&gt;&lt;p&gt;That is probably one of most complicated aspects of the PPU, and a crucial one so make sure you
 understand it well.&lt;/p&gt;
-- http://localhost:42897/series/nes-internals/2024-04-06-ppu-background/ - </description>
+- http://localhost:42897/series/nes-internals/ppu-background/ - </description>
         </item>
     
     
     
         <item>
-        <title>&#34;NES Internals chapter 1&#34; - The CPU</title>
-        <link>http://localhost:42897/series/nes-internals/2024-03-14-cpu/</link>
+        <title>The NES Internals Series: chapter 1 - The CPU</title>
+        <link>http://localhost:42897/series/nes-internals/cpu/</link>
         <pubDate>Thu, 14 Mar 2024 15:13:25 +0300</pubDate>
         
-        <guid>http://localhost:42897/series/nes-internals/2024-03-14-cpu/</guid>
-        <description>My New Hugo Site http://localhost:42897/series/nes-internals/2024-03-14-cpu/ -&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
+        <guid>http://localhost:42897/series/nes-internals/cpu/</guid>
+        <description>My New Hugo Site http://localhost:42897/series/nes-internals/cpu/ -&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
 &lt;p&gt;The NES has a slightly modified version of the MOS 6502 CPU.
 This CPU was quite popular back in the day so there is plenty of detailed documentation about it online.&lt;/p&gt;
 &lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;
@@ -794,44 +794,7 @@ The 6502 has 2 buses:&lt;/p&gt;
 &lt;p&gt;The internal buses are part of the process of communicating with the system bus that connects all devices on the system. (the internal data bus is connected to the system data bus, and the internal address bus is actually PART of the system address bus)&lt;/p&gt;
 &lt;h2 id=&#34;final-words&#34;&gt;Final words&lt;/h2&gt;
 &lt;p&gt;Hope this writeup helped understanding how the CPU of the NES works. I know I say this every writeup, but even though it is very hard to understand as a beginner, I can&amp;rsquo;t recommend the NESdev wiki enough. It contains everything emu devs or game devs of the NES need to know&lt;/p&gt;
-- http://localhost:42897/series/nes-internals/2024-03-14-cpu/ - </description>
-        </item>
-    
-    
-    
-        <item>
-        <title>NES Internals Series</title>
-        <link>http://localhost:42897/series/2024-03-14-nes-internals-series/</link>
-        <pubDate>Thu, 14 Mar 2024 15:13:25 +0300</pubDate>
-        
-        <guid>http://localhost:42897/series/2024-03-14-nes-internals-series/</guid>
-        <description>My New Hugo Site http://localhost:42897/series/2024-03-14-nes-internals-series/ -&lt;h2 id=&#34;prologue&#34;&gt;Prologue&lt;/h2&gt;
-&lt;p&gt;In this blog/series I will try to give an introduction to the NES architecture, directed to new emu devs looking to get started.&lt;/p&gt;
-&lt;p&gt;The NES has 4 major components:
-The &lt;em&gt;CPU&lt;/em&gt;, the &lt;em&gt;PPU&lt;/em&gt;, the &lt;em&gt;APU&lt;/em&gt;, &lt;em&gt;Cartridge &amp;amp; Mappers&lt;/em&gt;, and the &lt;em&gt;Main Bus&lt;/em&gt;.&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;a href=&#34;http://localhost:42897/nes-internals-series/chapter-1&#34;&gt;&lt;strong&gt;CPU&lt;/strong&gt; - Chapter 1&lt;/a&gt;&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;a href=&#34;http://localhost:42897/nes-internals-series/chapter-2&#34;&gt;&lt;strong&gt;PPU Background&lt;/strong&gt; - Chapter 2&lt;/a&gt;&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;a href=&#34;http://localhost:42897/nes-internals-series/chapter-3&#34;&gt;&lt;strong&gt;PPU Foreground&lt;/strong&gt; - Chapter 3&lt;/a&gt;&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;a href=&#34;http://localhost:42897/nes-internals-series/chapter-4&#34;&gt;&lt;strong&gt;Cartridge &amp;amp; Mappers&lt;/strong&gt; - Chapter 4&lt;/a&gt;&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;a href=&#34;http://localhost:42897/nes-internals-series/chapter-5&#34;&gt;&lt;strong&gt;Controls&lt;/strong&gt; - Chapter 5&lt;/a&gt;&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;I do plan to write about the rest of the components as well in the future.&lt;/p&gt;
-&lt;h2 id=&#34;disclaimer&#34;&gt;Disclaimer&lt;/h2&gt;
-&lt;p&gt;This is not meant to be a substitute to documentation or anything like that. I try to provide simple explanation to each of the NES&amp;rsquo;s components, to make it easier to understand the NESdev wiki.&lt;/p&gt;
-&lt;p&gt;I&amp;rsquo;m not a professional by any means, and I still much more to learn. All the stuff written here is what I&amp;rsquo;ve learned and understood in my journey of writing an NES emulator.
-If you have found any mistakes, something isn&amp;rsquo;t clear, or just have some questions feel free to contact me at: &lt;a href=&#34;Roeegg22@gmail.com&#34;&gt;Roeegg22@gmail.com&lt;/a&gt;. you can also checkout my &lt;a href=&#34;https://github.com/Roeegg2&#34;&gt;Github page&lt;/a&gt;, the source code for my emulator is there&lt;/p&gt;
-- http://localhost:42897/series/2024-03-14-nes-internals-series/ - </description>
+- http://localhost:42897/series/nes-internals/cpu/ - </description>
         </item>
     
     
@@ -1245,8 +1208,6 @@ a good reason to not do it: deferred allocation (see below). - don&amp;rsquo;t u
 &lt;/ul&gt;
 - http://localhost:42897/posts/tls/ - </description>
         </item>
-    
-    
     
     
     

@@ -3,27 +3,24 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>http://localhost:42897/</loc>
-    <lastmod>2024-05-13T15:13:25+03:00</lastmod>
-  </url><url>
-    <loc>http://localhost:42897/series/</loc>
-    <lastmod>2024-05-13T15:13:25+03:00</lastmod>
-  </url><url>
-    <loc>http://localhost:42897/series/nes-internals/2024-05-13-ppu_foreground/</loc>
-    <lastmod>2024-05-13T15:13:25+03:00</lastmod>
-  </url><url>
-    <loc>http://localhost:42897/series/nes-internals/2024-04-23-controls/</loc>
     <lastmod>2024-04-23T15:13:25+03:00</lastmod>
   </url><url>
-    <loc>http://localhost:42897/series/nes-internals/2024-04-22-cart-and-mappers/</loc>
+    <loc>http://localhost:42897/series/</loc>
+    <lastmod>2024-04-23T15:13:25+03:00</lastmod>
+  </url><url>
+    <loc>http://localhost:42897/series/nes-internals/controls/</loc>
+    <lastmod>2024-04-23T15:13:25+03:00</lastmod>
+  </url><url>
+    <loc>http://localhost:42897/series/nes-internals/cart-and-mappers/</loc>
     <lastmod>2024-04-22T15:13:25+03:00</lastmod>
   </url><url>
-    <loc>http://localhost:42897/series/nes-internals/2024-04-06-ppu-background/</loc>
+    <loc>http://localhost:42897/series/nes-internals/ppu-foreground/</loc>
+    <lastmod>2024-04-13T15:13:25+03:00</lastmod>
+  </url><url>
+    <loc>http://localhost:42897/series/nes-internals/ppu-background/</loc>
     <lastmod>2024-04-06T15:13:25+03:00</lastmod>
   </url><url>
-    <loc>http://localhost:42897/series/nes-internals/2024-03-14-cpu/</loc>
-    <lastmod>2024-03-14T15:13:25+03:00</lastmod>
-  </url><url>
-    <loc>http://localhost:42897/series/2024-03-14-nes-internals-series/</loc>
+    <loc>http://localhost:42897/series/nes-internals/cpu/</loc>
     <lastmod>2024-03-14T15:13:25+03:00</lastmod>
   </url><url>
     <loc>http://localhost:42897/posts/</loc>
@@ -34,8 +31,6 @@
   </url><url>
     <loc>http://localhost:42897/posts/tls/</loc>
     <lastmod>2024-01-10T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:42897/series/nes-internals/apu/</loc>
   </url><url>
     <loc>http://localhost:42897/about/</loc>
   </url><url>

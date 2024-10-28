@@ -145,47 +145,12 @@
     <div class="post-list-container post-list-container-no-background">
         
         
-            <a href="/series/nes-internals/2024-05-13-ppu_foreground/" class="a-block">
+            <a href="/series/nes-internals/controls/" class="a-block">
                 <div class="post-item-wrapper">
                     <div class="post-item post-item-no-divider">
                         <div class="post-item-info-wrapper">
                             <div class="post-item-title">
-                                The PPU Foreground Rendering
-                            </div>
-                            <div class="post-item-summary">
-                                
-                                    <h2 id="terminology">Terminology</h2>
-<ul>
-<li><strong>DMA</strong> - a component in a computer system which can access the system RAM, and other storage areas directly and move data between them without needing the CPU.
-As always, if you want to understand better, go look it up online</li>
-</ul>
-<h2 id="oam">OAM</h2>
-<p>The OAM (object attribute memory) is the place where sprites are stored. It has the size of 256 bytes, and can store 64 sprites.
-Using a short calculation, we get that each sprite entry is the size of <code>256/64 = 4 Bytes</code>.</p>
-                                
-                            </div>
-                            <div class="post-item-meta">
-    2024-05-13
-    &emsp;
-    
-    
-    
-    &emsp;
-    
-</div>
-
-                        </div>
-                        
-                        
-                    </div>
-                </div>
-        
-            <a href="/series/nes-internals/2024-04-23-controls/" class="a-block">
-                <div class="post-item-wrapper">
-                    <div class="post-item post-item-no-divider">
-                        <div class="post-item-info-wrapper">
-                            <div class="post-item-title">
-                                The Standard Controller
+                                The NES Internals Series: chapter 5 - The Standard Controller
                             </div>
                             <div class="post-item-summary">
                                 
@@ -215,12 +180,12 @@ reading these 2 ports activate pins /OE1 and /OE2</p>
                     </div>
                 </div>
         
-            <a href="/series/nes-internals/2024-04-22-cart-and-mappers/" class="a-block">
+            <a href="/series/nes-internals/cart-and-mappers/" class="a-block">
                 <div class="post-item-wrapper">
                     <div class="post-item post-item-no-divider">
                         <div class="post-item-info-wrapper">
                             <div class="post-item-title">
-                                The Game Cartrdige &amp; Mappers
+                                The NES Internals Series: chapter 4 - Game Cartrdiges &amp; Mappers
                             </div>
                             <div class="post-item-summary">
                                 
@@ -253,12 +218,47 @@ The cartridge is made up of (in order):</p>
                     </div>
                 </div>
         
-            <a href="/series/nes-internals/2024-04-06-ppu-background/" class="a-block">
+            <a href="/series/nes-internals/ppu-foreground/" class="a-block">
                 <div class="post-item-wrapper">
                     <div class="post-item post-item-no-divider">
                         <div class="post-item-info-wrapper">
                             <div class="post-item-title">
-                                NES Internals Series chapter 2 - PPU Background
+                                The NES Internals Series: chapter 3 - PPU Foreground Rendering
+                            </div>
+                            <div class="post-item-summary">
+                                
+                                    <h2 id="terminology">Terminology</h2>
+<ul>
+<li><strong>DMA</strong> - a component in a computer system which can access the system RAM, and other storage areas directly and move data between them without needing the CPU.
+As always, if you want to understand better, go look it up online</li>
+</ul>
+<h2 id="oam">OAM</h2>
+<p>The OAM (object attribute memory) is the place where sprites are stored. It has the size of 256 bytes, and can store 64 sprites.
+Using a short calculation, we get that each sprite entry is the size of <code>256/64 = 4 Bytes</code>.</p>
+                                
+                            </div>
+                            <div class="post-item-meta">
+    2024-04-13
+    &emsp;
+    
+    
+    
+    &emsp;
+    
+</div>
+
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+        
+            <a href="/series/nes-internals/ppu-background/" class="a-block">
+                <div class="post-item-wrapper">
+                    <div class="post-item post-item-no-divider">
+                        <div class="post-item-info-wrapper">
+                            <div class="post-item-title">
+                                The NES Internals Series: chapter 2 - PPU Background
                             </div>
                             <div class="post-item-summary">
                                 
@@ -284,12 +284,12 @@ If you think the same, please yeet that mindset into a garbage can, because that
                     </div>
                 </div>
         
-            <a href="/series/nes-internals/2024-03-14-cpu/" class="a-block">
+            <a href="/series/nes-internals/cpu/" class="a-block">
                 <div class="post-item-wrapper">
                     <div class="post-item post-item-no-divider">
                         <div class="post-item-info-wrapper">
                             <div class="post-item-title">
-                                &#34;NES Internals chapter 1&#34; - The CPU
+                                The NES Internals Series: chapter 1 - The CPU
                             </div>
                             <div class="post-item-summary">
                                 
@@ -302,55 +302,6 @@ I will explain some terms very simply, if you want a more in depth explanation y
 <ul>
 <li>
 <p><strong>Registers</strong> - small and fast areas of storage the CPU can fetch data from and write data to.</p>
-                                
-                            </div>
-                            <div class="post-item-meta">
-    2024-03-14
-    &emsp;
-    
-    
-    
-    &emsp;
-    
-</div>
-
-                        </div>
-                        
-                        
-                    </div>
-                </div>
-        
-            <a href="/series/2024-03-14-nes-internals-series/" class="a-block">
-                <div class="post-item-wrapper">
-                    <div class="post-item post-item-no-divider">
-                        <div class="post-item-info-wrapper">
-                            <div class="post-item-title">
-                                NES Internals Series
-                            </div>
-                            <div class="post-item-summary">
-                                
-                                    <h2 id="prologue">Prologue</h2>
-<p>In this blog/series I will try to give an introduction to the NES architecture, directed to new emu devs looking to get started.</p>
-<p>The NES has 4 major components:
-The <em>CPU</em>, the <em>PPU</em>, the <em>APU</em>, <em>Cartridge &amp; Mappers</em>, and the <em>Main Bus</em>.</p>
-<ul>
-<li>
-<p><a href="/nes-internals-series/chapter-1"><strong>CPU</strong> - Chapter 1</a></p>
-</li>
-<li>
-<p><a href="/nes-internals-series/chapter-2"><strong>PPU Background</strong> - Chapter 2</a></p>
-</li>
-<li>
-<p><a href="/nes-internals-series/chapter-3"><strong>PPU Foreground</strong> - Chapter 3</a></p>
-</li>
-<li>
-<p><a href="/nes-internals-series/chapter-4"><strong>Cartridge &amp; Mappers</strong> - Chapter 4</a></p>
-</li>
-<li>
-<p><a href="/nes-internals-series/chapter-5"><strong>Controls</strong> - Chapter 5</a></p>
-</li>
-</ul>
-<p>I do plan to write about the rest of the components as well in the future.</p>
                                 
                             </div>
                             <div class="post-item-meta">
@@ -427,35 +378,6 @@ The <em>CPU</em>, the <em>PPU</em>, the <em>APU</em>, <em>Cartridge &amp; Mapper
                             </div>
                             <div class="post-item-meta">
     2024-01-10
-    &emsp;
-    
-    
-    
-    &emsp;
-    
-</div>
-
-                        </div>
-                        
-                        
-                    </div>
-                </div>
-        
-            <a href="/series/nes-internals/apu/" class="a-block">
-                <div class="post-item-wrapper">
-                    <div class="post-item post-item-no-divider">
-                        <div class="post-item-info-wrapper">
-                            <div class="post-item-title">
-                                
-                            </div>
-                            <div class="post-item-summary">
-                                
-                                    <h1 id="apu">APU</h1>
-<h2 id="triangle">Triangle</h2>
-                                
-                            </div>
-                            <div class="post-item-meta">
-    0001-01-01
     &emsp;
     
     
