@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html><head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=42897&amp;path=livereload" data-no-instant defer></script>
+<title>The PLT &#43; GOT, Lazy binding &#43; Eager binding</title>
+
+
+
+
+<meta charset="utf-8">
+<meta name="X-UA-Compatible" content="IE=edge">
+<meta name="google-site-verification" content="">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+<meta content="telephone=no" name="format-detection">
+<meta name="description" content="">
+<meta name="renderer" content="webkit">
+<meta name="theme-color" content="#ffffff">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+      <script src="/js/toc.js"></script>
+    
+    <link type="text/css" rel="stylesheet" href="/vendor/css/bootstrap.min.css">
+
+<link rel="stylesheet" href="/scss/dark-mode.min.cb53f1bee2b8900cb4f082afbf00175d6618f281cf9a2fe8619e3b52d20b5721.css" integrity="sha256-y1PxvuK4kAy08IKvvwAXXWYY8oHPmi/oYZ47UtILVyE=" media="screen">
+
+
+<link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Material+Icons">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body>
+    	<div id="app"><div class="single-column-drawer-container" id="drawer"
+     v-bind:class="{ 'single-column-drawer-container-active': isDrawerOpen }">
+    <div class="drawer-content">
+        <div class="drawer-menu">
+            
+            
+            
+                
+                
+                
+                    
+                
+                
+                
+                <a class="a-block drawer-menu-item active" href="/posts">
+                    Single Posts
+                </a>
+                
+            
+                
+                
+                
+                
+                
+                <a class="a-block drawer-menu-item false" href="/series">
+                    Series
+                </a>
+                
+            
+                
+                
+                
+                
+                
+                <a class="a-block drawer-menu-item false" href="/about">
+                    About
+                </a>
+                
+            
+            
+            <div class="toc">
+
+
+	<div class="toc-content">
+	
+		
+		
+		
+		<center>- CATALOG -</center>
+		
+		
+		<ul>
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#prologue" class="nav-prologue">
+									Prologue
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#plt--got-explained-in-a-nutshell" class="nav-plt--got-explained-in-a-nutshell">
+									PLT &#43; GOT explained in a nutshell
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#motivation" class="nav-motivation">
+									Motivation
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#lazy-vs-eager-binding-in-a-nutshell" class="nav-lazy-vs-eager-binding-in-a-nutshell">
+									Lazy vs eager binding in a nutshell
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#running-example" class="nav-running-example">
+									Running example
+								</a>
+							</li>
+						
+						
+					
+				
+			
+		</ul>
+	</div>
+
+</div>
+            
+        </div>
+    </div>
+</div>
+<transition name="fade">
+    <div id="drawer-mask" v-bind:class="{ 'single-column-drawer-mask': mounted }" v-if="isDrawerOpen" v-on:click="toggleDrawer"></div>
+</transition>
+<nav id="navBar" class="navbar sticky-top navbar-light single-column-nav-container">
+    <div id="navBackground" class="nav-background"></div>
+    <div class="container container-narrow nav-content">
+        <button id="nav_dropdown_btn" class="nav-dropdown-toggle" type="button" v-on:click="toggleDrawer">
+            <i class="material-icons">
+                menu
+            </i>
+        </button>
+        <a id="navTitle" class="navbar-brand" href="http://localhost:42897/">
+            My New Hugo Site
+        </a>
+        
+        <button type="button" class="nav-darkmode-toggle" id="darkModeToggleButton2">
+            <i class="material-icons" id="darkModeToggleIcon2">
+                dark_mode
+            </i>
+        </button>
+        
+    </div>
+</nav>
+<div class="single-column-header-container" id="pageHead"
+     v-bind:style="{ transform: 'translateZ(0px) translateY('+.3*scrollY+'px)', opacity: 1-navOpacity }">
+    <a href="http://localhost:42897/">
+        <div class="single-column-header-title">My New Hugo Site</div>
+        
+
+    </a>
+</div>
+
+            <div id="content">
+                <div id="streamContainer" class="stream-container">
+
+    <div class="post-list-container post-list-container-shadow">
+        <div class="post">
+            
+            
+            
+
+            <div class="post-head-wrapper-text-only"
+                
+            >
+                <div class="post-title">
+                    The PLT &#43; GOT, Lazy binding &#43; Eager binding
+                    
+                    <div class="post-meta">
+                        
+                        <time itemprop="datePublished">
+                            2024-03-06 00:00
+                        </time>
+                        
+
+                        
+
+                        
+                        
+                    </div>
+                </div>
+            </div>
+            
+            <div class="post-body-wrapper">
+                
+                <div class="post-body" v-pre>
+                
+                    <h1 id="prologue">Prologue</h1>
+<p>This is just a short post explaining the GOT and PLT in the ELF format. No bullshit, just explanation.</p>
+<p>Any assembly here will be x86_64, Intel syntax, but it&rsquo;s the same jist for different architectures as well.</p>
+<h1 id="plt--got-explained-in-a-nutshell">PLT + GOT explained in a nutshell</h1>
+<p>The PLT, GOT and GOT.PLT are all sections in an ELF file.</p>
+<ul>
+<li>The PLT is a table of entries, each entry being a very short code snippet (often times called <em>stub</em>).</li>
+<li>The GOT is also a table of entries, each entry being a an address to some symbol (could be function, global variable, etc).</li>
+<li>The GOT.PLT is simply the part of the GOT which the PLT uses.</li>
+</ul>
+<p>Usually when we call a function, we use <code>call &lt;address of function we want to call&gt;</code>.</p>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> the operand for <code>call</code> doesn&rsquo;t have to be a hardcoded address. It might be the offset from <code>RIP</code>, maybe we use the value in some register as address, etc. Either way, it&rsquo;s the same gist - we push the current <code>RIP</code> to the stack and jump directly to the specified address.</p>
+</blockquote>
+<p>Over all simple.</p>
+<p>Well, it&rsquo;s not always the case.
+Calling functions which utilize the PLT looks a bit different:</p>
+<ol>
+<li>instead of <code>call</code>ing straight to the address of the function we want to execute, we <code>call</code> to the address of some PLT entry.</li>
+<li>the PLT entry, contains a <code>jmp</code> instruction to <em>another</em> address - a GOT.PLT entry</li>
+<li>the GOT.PLT entry contains the actual address of the function we wanted to call.</li>
+</ol>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> as you&rsquo;ll see for yourself very soon, usually the PLT stub has additional code, not just a single <code>jmp</code> instruction to the desired GOT.PLT entry. We&rsquo;ll get to that in a bit.</p>
+</blockquote>
+<h1 id="motivation">Motivation</h1>
+<p>The first time I&rsquo;ve come across this mechanism the first thing I asked myself &ldquo;Isn&rsquo;t this just overcomplicating things?&rdquo;.
+At first glance it does seem a bit complicated, but there are good reasons for it:</p>
+<ol>
+<li>In case a relocation must be applied (for example when the function is implemented by a shared object) instead of applying relocations straight to the <code>.text</code> section in every place the function is called, you apply it once in the GOT, and you&rsquo;re good to go!</li>
+<li>Using different versions of functions - sometimes, the developer wants to call a different function depending on what version, architecture, OS, etc
+the user is rocking. That way the dynamic linker can choose which address to replace the GOT with, depending on what function should be called (this is what happens in a lot of glibc functions, like <code>printf</code> for example)</li>
+<li>Lets the linker use a technique called <em>lazy binding</em>.</li>
+</ol>
+<p>Wha&rsquo;ts lazy binding you ask? Well, let me tell you!</p>
+<h1 id="lazy-vs-eager-binding-in-a-nutshell">Lazy vs eager binding in a nutshell</h1>
+<p>Lazy binding and eager binding are different methods to apply relocations (binding function calls to their actual address)</p>
+<p>In <strong>eager</strong> binding, the linker resolves the relocations before transfaring control to the program. In <strong>lazy</strong> binding, (as the name implies) the linker does this lazily - he doesn&rsquo;t initially resolve the relocations, but instead it resolves a relocation at runtime, when the program tries to use the symbol associated with that relocation.</p>
+<p>The reason lazy binding was introduced was because in large applications, applying all relocations before running could be very time consuming, which would result in quite a big delay until the program actually runs. On the other hand, applying relocations at runtime results in a decrease of total execution speed.</p>
+<p>Glibc uses lazy binding by default unless specified otherwise, but in contrast Google&rsquo;s Fuchsia libc uses eager binding.</p>
+<p>There isn&rsquo;t one truth, and each method is better for different scenarios depending on the programs priority and requirements.</p>
+<h1 id="running-example">Running example</h1>
+<p>Let&rsquo;s see all of this in action now!
+Consider the following C program:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#75715e">/* prog.c */</span>
+</span></span><span style="display:flex;"><span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdio.h&gt;</span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;stdlib.h&gt;</span><span style="color:#75715e">
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">void</span>) {
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">int</span><span style="color:#f92672">*</span> ptr <span style="color:#f92672">=</span> <span style="color:#a6e22e">malloc</span>(<span style="color:#ae81ff">10</span> <span style="color:#f92672">*</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">int</span>));
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">int</span> i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">10</span>; i<span style="color:#f92672">++</span>) {
+</span></span><span style="display:flex;"><span>        ptr[i] <span style="color:#f92672">=</span> i;
+</span></span><span style="display:flex;"><span>        <span style="color:#a6e22e">printf</span>(<span style="color:#e6db74">&#34;%d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, ptr[i]);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>A simple trivial program, which allocates memory for 10 integers, moves over the array and prints the values.</p>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> It is bad practice to call <code>malloc</code> without checking if the pointer is <code>NULL</code>, and it is also bad practice to not <code>free</code> the memory after you&rsquo;re done with it. This is just an example, and the program won&rsquo;t encounter any issues on my system with allocating this space + the allocated memory will be freed automatically anyway when exiting the program. But don&rsquo;t be like me - always check for errors and free your memory when you&rsquo;re done using it!</p>
+</blockquote>
+<p>Compiling this with <code>gcc -o prog prog.c -no-pie</code></p>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> I&rsquo;m running all of this on a <code>x86_64 Arch Linux</code> machine (<code>uname -r = 6.11.3-arch1-1</code>). Things might be a bit different on your machine, but the general idea should be the same.</p>
+</blockquote>
+<p>When running the program, we get as expected:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#f92672">[</span>roeet@roeetarch ~<span style="color:#f92672">]</span>$ ./prog
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">0</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">1</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">2</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">3</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">4</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">5</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">6</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">7</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">8</span>
+</span></span><span style="display:flex;"><span><span style="color:#ae81ff">9</span>
+</span></span></code></pre></div><p>Running <code>objdump -d prog</code> we get inter alia:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-asm" data-lang="asm"><span style="display:flex;"><span><span style="color:#a6e22e">Disassembly</span> <span style="color:#66d9ef">of</span> <span style="color:#66d9ef">section</span> <span style="color:#66d9ef">.plt</span>:
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">0000000000001020</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#a6e22e">printf@plt-0x10</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">1020:</span>       <span style="color:#a6e22e">ff</span> <span style="color:#ae81ff">35</span> <span style="color:#66d9ef">ca</span> <span style="color:#ae81ff">2</span><span style="color:#66d9ef">f</span> <span style="color:#ae81ff">00</span> <span style="color:#ae81ff">00</span>       <span style="color:#66d9ef">push</span>   <span style="color:#ae81ff">0x2fca</span>(%rip)        <span style="color:#75715e"># 3ff0 &lt;_GLOBAL_OFFSET_TABLE_+0x8&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">1026:</span>       <span style="color:#a6e22e">ff</span> <span style="color:#ae81ff">25</span> <span style="color:#66d9ef">cc</span> <span style="color:#ae81ff">2</span><span style="color:#66d9ef">f</span> <span style="color:#ae81ff">00</span> <span style="color:#ae81ff">00</span>       <span style="color:#66d9ef">jmp</span>    *<span style="color:#ae81ff">0x2fcc</span>(%rip)        <span style="color:#75715e"># 3ff8 &lt;_GLOBAL_OFFSET_TABLE_+0x10&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">102</span>c:       <span style="color:#960050;background-color:#1e0010">0</span><span style="color:#a6e22e">f</span> <span style="color:#ae81ff">1</span><span style="color:#66d9ef">f</span> <span style="color:#ae81ff">40</span> <span style="color:#ae81ff">00</span>             <span style="color:#66d9ef">nopl</span>   <span style="color:#ae81ff">0x0</span>(%rax)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">0000000000001030</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#a6e22e">printf@plt</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">1030:</span>       <span style="color:#a6e22e">ff</span> <span style="color:#ae81ff">25</span> <span style="color:#66d9ef">ca</span> <span style="color:#ae81ff">2</span><span style="color:#66d9ef">f</span> <span style="color:#ae81ff">00</span> <span style="color:#ae81ff">00</span>       <span style="color:#66d9ef">jmp</span>    *<span style="color:#ae81ff">0x2fca</span>(%rip)        <span style="color:#75715e"># 4000 &lt;printf@GLIBC_2.2.5&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">1036:</span>       <span style="color:#960050;background-color:#1e0010">68</span> <span style="color:#960050;background-color:#1e0010">00</span> <span style="color:#960050;background-color:#1e0010">00</span> <span style="color:#960050;background-color:#1e0010">00</span> <span style="color:#960050;background-color:#1e0010">00</span>          <span style="color:#a6e22e">push</span>   <span style="color:#66d9ef">$0x0</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">103</span>b:       <span style="color:#a6e22e">e9</span> <span style="color:#66d9ef">e0</span> <span style="color:#66d9ef">ff</span> <span style="color:#66d9ef">ff</span> <span style="color:#66d9ef">ff</span>          <span style="color:#66d9ef">jmp</span>    <span style="color:#ae81ff">1020</span> &lt;<span style="color:#66d9ef">_init</span>+<span style="color:#ae81ff">0x20</span>&gt;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#960050;background-color:#1e0010">0000000000001040</span> <span style="color:#960050;background-color:#1e0010">&lt;</span><span style="color:#a6e22e">malloc@plt</span><span style="color:#960050;background-color:#1e0010">&gt;</span>:
+</span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">1040:</span>       <span style="color:#a6e22e">ff</span> <span style="color:#ae81ff">25</span> <span style="color:#66d9ef">c2</span> <span style="color:#ae81ff">2</span><span style="color:#66d9ef">f</span> <span style="color:#ae81ff">00</span> <span style="color:#ae81ff">00</span>       <span style="color:#66d9ef">jmp</span>    *<span style="color:#ae81ff">0x2fc2</span>(%rip)        <span style="color:#75715e"># 4008 &lt;malloc@GLIBC_2.2.5&gt;
+</span></span></span><span style="display:flex;"><span><span style="color:#75715e"></span>    <span style="color:#960050;background-color:#1e0010">1046:</span>       <span style="color:#960050;background-color:#1e0010">68</span> <span style="color:#960050;background-color:#1e0010">01</span> <span style="color:#960050;background-color:#1e0010">00</span> <span style="color:#960050;background-color:#1e0010">00</span> <span style="color:#960050;background-color:#1e0010">00</span>          <span style="color:#a6e22e">push</span>   <span style="color:#66d9ef">$0x1</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#960050;background-color:#1e0010">104</span>b:       <span style="color:#a6e22e">e9</span> <span style="color:#66d9ef">d0</span> <span style="color:#66d9ef">ff</span> <span style="color:#66d9ef">ff</span> <span style="color:#66d9ef">ff</span>          <span style="color:#66d9ef">jmp</span>    <span style="color:#ae81ff">1020</span> &lt;<span style="color:#66d9ef">_init</span>+<span style="color:#ae81ff">0x20</span>&gt;
+</span></span></code></pre></div><p>As we see, in this case we get 2 PLT entries - one for <code>printf</code> and one for <code>malloc</code>. Each PLT entry contains a <code>jmp</code> instruction to a GOT.PLT entry, which contains the actual address of the function we want to call.</p>
+<p>And:</p>
+<pre tabindex="0"><code>0000000000001149 &lt;main&gt;:
+    1149:       55                      push   %rbp
+    114a:       48 89 e5                mov    %rsp,%rbp
+    114d:       48 83 ec 10             sub    $0x10,%rsp
+    1151:       bf 28 00 00 00          mov    $0x28,%edi
+    1156:       e8 e5 fe ff ff          call   1040 &lt;malloc@plt&gt;
+    115b:       48 89 45 f8             mov    %rax,-0x8(%rbp)
+    115f:       c7 45 f4 00 00 00 00    movl   $0x0,-0xc(%rbp)
+    1166:       eb 49                   jmp    11b1 &lt;main+0x68&gt;
+    1168:       8b 45 f4                mov    -0xc(%rbp),%eax
+    116b:       48 98                   cltq
+    116d:       48 8d 14 85 00 00 00    lea    0x0(,%rax,4),%rdx
+    1174:       00 
+    1175:       48 8b 45 f8             mov    -0x8(%rbp),%rax
+    1179:       48 01 c2                add    %rax,%rdx
+    117c:       8b 45 f4                mov    -0xc(%rbp),%eax
+    117f:       89 02                   mov    %eax,(%rdx)
+    1181:       8b 45 f4                mov    -0xc(%rbp),%eax
+    1184:       48 98                   cltq
+    1186:       48 8d 14 85 00 00 00    lea    0x0(,%rax,4),%rdx
+    118d:       00 
+    118e:       48 8b 45 f8             mov    -0x8(%rbp),%rax
+    1192:       48 01 d0                add    %rdx,%rax
+    1195:       8b 00                   mov    (%rax),%eax
+    1197:       89 c6                   mov    %eax,%esi
+    1199:       48 8d 05 64 0e 00 00    lea    0xe64(%rip),%rax        # 2004 &lt;_IO_stdin_used+0x4&gt;
+    11a0:       48 89 c7                mov    %rax,%rdi
+    11a3:       b8 00 00 00 00          mov    $0x0,%eax
+    11a8:       e8 83 fe ff ff          call   1030 &lt;printf@plt&gt;
+    11ad:       83 45 f4 01             addl   $0x1,-0xc(%rbp)
+    11b1:       83 7d f4 09             cmpl   $0x9,-0xc(%rbp)
+    11b5:       7e b1                   jle    1168 &lt;main+0x1f&gt;
+    11b7:       b8 00 00 00 00          mov    $0x0,%eax
+    11bc:       c9                      leave
+    11bd:       c3                      ret
+</code></pre><p>Let&rsquo;s take <code>printf</code> as an example:</p>
+
+                    
+                    <HR width="100%" id="EOF">
+		    <p style="color:#777;">Last modified on 2024-03-06</p>
+                    
+                </div>
+            </div>
+            
+            
+            <nav class="post-pagination">
+
+                
+                <a class="newer-posts" href="/series/nes-internals/cpu/">
+			Next<br>The NES Internals Series: chapter 1 - The CPU
+                </a>
+                
+                
+                
+                <a class="older-posts" href="/posts/tls/">
+			Previous<br>Summary of Ulrich Drepper&#39;s legendary tls.pdf
+                </a>
+                
+            </nav>
+            <div class="post-comment-wrapper">
+                
+
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+        </div>
+    </div>
+
+
+                    </div>
+            </div><div id="sideContainer" class="side-container">
+    
+    <a class="a-block nav-head false" href="http://localhost:42897/">
+    
+        <div class="nav-title">
+            My New Hugo Site
+        </div>
+        
+    </a>
+
+    <div class="nav-link-list">
+        
+        
+            
+            
+            
+                
+            
+            
+            
+            <a class="a-block nav-link-item active" href="/posts">
+                Single Posts
+            </a>
+            
+        
+            
+            
+            
+            
+            
+            <a class="a-block nav-link-item false" href="/series">
+                Series
+            </a>
+            
+        
+            
+            
+            
+            
+            
+            <a class="a-block nav-link-item false" href="/about">
+                About
+            </a>
+            
+        
+    </div>
+
+    
+
+    <div class="nav-footer">
+        
+Hugo Theme <a href="https://github.com/amazingrise/hugo-theme-diary">Diary</a> by <a href="https://risehere.net/">Rise</a>
+<br>
+Ported from <a href="https://mak1t0.cc/" target="_blank" rel="noreferrer noopener">Makito</a>'s <a href="https://github.com/SumiMakito/hexo-theme-journal/" target="_blank" rel="noreferrer noopener">Journal.</a> <br>
+<br>
+
+&copy;
+	
+	2024 My New Hugo Site
+	
+
+    </div>
+    
+</div><div id="extraContainer" class="extra-container">
+    <div class="toc-wrapper">
+        
+
+        
+        <div class="toc">
+
+
+	<div class="toc-content">
+	
+		
+		
+		
+		<center>- CATALOG -</center>
+		
+		
+		<ul>
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#prologue" class="nav-prologue">
+									Prologue
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#plt--got-explained-in-a-nutshell" class="nav-plt--got-explained-in-a-nutshell">
+									PLT &#43; GOT explained in a nutshell
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#motivation" class="nav-motivation">
+									Motivation
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#lazy-vs-eager-binding-in-a-nutshell" class="nav-lazy-vs-eager-binding-in-a-nutshell">
+									Lazy vs eager binding in a nutshell
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#running-example" class="nav-running-example">
+									Running example
+								</a>
+							</li>
+						
+						
+					
+				
+			
+		</ul>
+	</div>
+
+</div>
+        
+    </div>
+    <div class="pagination">
+        <a id="globalBackToTop" class="pagination-action animated-visibility" href="#top"
+            :class="{ invisible: scrollY == 0 }">
+            <i class="material-icons pagination-action-icon">
+                keyboard_arrow_up
+            </i>
+        </a>
+        
+        <a type="button" class="pagination-action" id="darkModeToggleButton">
+            <span class="material-icons pagination-action-icon" id="darkModeToggleIcon">
+                dark_mode
+            </span>
+        </a>
+        
+        
+    </div>
+</div>
+
+<div id="single-column-footer">
+Hugo Theme <a href="https://github.com/amazingrise/hugo-theme-diary">Diary</a> by <a href="https://risehere.net/">Rise</a>
+<br>
+Ported from <a href="https://mak1t0.cc/" target="_blank" rel="noreferrer noopener">Makito</a>'s <a href="https://github.com/SumiMakito/hexo-theme-journal/" target="_blank" rel="noreferrer noopener">Journal.</a> <br>
+<br>
+
+&copy;
+	
+	2024 My New Hugo Site
+	
+</div>
+            </div>
+    
+    <script src="/js/journal.js"></script></body>
+</html>

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html><head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=42897&amp;path=livereload" data-no-instant defer></script>
+<title>The NES Internals Series: chapter 4 - Game Cartrdiges &amp; Mappers</title>
+
+
+
+
+<meta charset="utf-8">
+<meta name="X-UA-Compatible" content="IE=edge">
+<meta name="google-site-verification" content="">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+<meta content="telephone=no" name="format-detection">
+<meta name="description" content="">
+<meta name="renderer" content="webkit">
+<meta name="theme-color" content="#ffffff">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+      <script src="/js/toc.js"></script>
+    
+    <link type="text/css" rel="stylesheet" href="/vendor/css/bootstrap.min.css">
+
+<link rel="stylesheet" href="/scss/dark-mode.min.cb53f1bee2b8900cb4f082afbf00175d6618f281cf9a2fe8619e3b52d20b5721.css" integrity="sha256-y1PxvuK4kAy08IKvvwAXXWYY8oHPmi/oYZ47UtILVyE=" media="screen">
+
+
+<link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Material+Icons">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body>
+    	<div id="app"><div class="single-column-drawer-container" id="drawer"
+     v-bind:class="{ 'single-column-drawer-container-active': isDrawerOpen }">
+    <div class="drawer-content">
+        <div class="drawer-menu">
+            
+            
+            
+                
+                
+                
+                
+                
+                <a class="a-block drawer-menu-item false" href="/posts">
+                    Single Posts
+                </a>
+                
+            
+                
+                
+                
+                    
+                
+                
+                
+                <a class="a-block drawer-menu-item active" href="/series">
+                    Series
+                </a>
+                
+            
+                
+                
+                
+                
+                
+                <a class="a-block drawer-menu-item false" href="/about">
+                    About
+                </a>
+                
+            
+            
+            <div class="toc">
+
+
+	<div class="toc-content">
+	
+		
+		
+		
+		<center>- CATALOG -</center>
+		
+		
+		<ul>
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#introduction" class="nav-introduction">
+									Introduction
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#terminology" class="nav-terminology">
+									Terminology
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#what-is-a-cartridge" class="nav-what-is-a-cartridge">
+									What is a cartridge?
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#number-1---prg" class="nav-number-1---prg">
+									Number 1 - PRG
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#number-2---chr" class="nav-number-2---chr">
+									Number 2 - CHR
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#number-3---interrupt-vectors" class="nav-number-3---interrupt-vectors">
+									Number 3 - Interrupt Vectors
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#conclusion" class="nav-conclusion">
+									Conclusion
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+							
+								</ul>
+							
+						
+						
+						
+							<li>
+								<a href="#what-is-a-mapper" class="nav-what-is-a-mapper">
+									What is a mapper?
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#the-ines-and-nes-20-format" class="nav-the-ines-and-nes-20-format">
+									The iNES and NES 2.0 format
+								</a>
+							</li>
+						
+						
+					
+				
+			
+		</ul>
+	</div>
+
+</div>
+            
+        </div>
+    </div>
+</div>
+<transition name="fade">
+    <div id="drawer-mask" v-bind:class="{ 'single-column-drawer-mask': mounted }" v-if="isDrawerOpen" v-on:click="toggleDrawer"></div>
+</transition>
+<nav id="navBar" class="navbar sticky-top navbar-light single-column-nav-container">
+    <div id="navBackground" class="nav-background"></div>
+    <div class="container container-narrow nav-content">
+        <button id="nav_dropdown_btn" class="nav-dropdown-toggle" type="button" v-on:click="toggleDrawer">
+            <i class="material-icons">
+                menu
+            </i>
+        </button>
+        <a id="navTitle" class="navbar-brand" href="http://localhost:42897/">
+            My New Hugo Site
+        </a>
+        
+        <button type="button" class="nav-darkmode-toggle" id="darkModeToggleButton2">
+            <i class="material-icons" id="darkModeToggleIcon2">
+                dark_mode
+            </i>
+        </button>
+        
+    </div>
+</nav>
+<div class="single-column-header-container" id="pageHead"
+     v-bind:style="{ transform: 'translateZ(0px) translateY('+.3*scrollY+'px)', opacity: 1-navOpacity }">
+    <a href="http://localhost:42897/">
+        <div class="single-column-header-title">My New Hugo Site</div>
+        
+
+    </a>
+</div>
+
+            <div id="content">
+                <div id="streamContainer" class="stream-container">
+
+    <div class="post-list-container post-list-container-shadow">
+        <div class="post">
+            
+            
+            
+
+            <div class="post-head-wrapper-text-only"
+                
+            >
+                <div class="post-title">
+                    The NES Internals Series: chapter 4 - Game Cartrdiges &amp; Mappers
+                    
+                    <div class="post-meta">
+                        
+                        <time itemprop="datePublished">
+                            2024-04-22 15:13
+                        </time>
+                        
+
+                        
+
+                        
+                        
+                    </div>
+                </div>
+            </div>
+            
+            <div class="post-body-wrapper">
+                
+                <div class="post-body" v-pre>
+                
+                    <h2 id="introduction">Introduction</h2>
+<p>If you haven&rsquo;t checked out my PPU and CPU writeups, I recommend you go check them out before reading this part, as I&rsquo;m building on top of things I explained there.</p>
+<h2 id="terminology">Terminology</h2>
+<ul>
+<li><strong>ROM</strong> - a type of memory (which unlike RAM) its data cannot change (this is why its also called ROM - &ldquo;read only memory&rdquo;. as you can only read data from it). The data in it is set once by the manufacturer, and cannot be changed again by the CPU.</li>
+</ul>
+<h2 id="what-is-a-cartridge">What is a cartridge?</h2>
+<p>Modern consoles have full operating systems, and some firmware to boot the operating system (like BIOS or UEFI).
+The NES doesn&rsquo;t have any of that - it uses cartridges.
+These are essentially just memory chips (usually ROM, but sometimes RAM) which contains the data of the game.
+The cartridge is made up of (in order):</p>
+<h3 id="number-1---prg">Number 1 - PRG</h3>
+<p>A ROM chip containing the <em>code</em> of the game</p>
+<h3 id="number-2---chr">Number 2 - CHR</h3>
+<p>A ROM chip containing the <em>graphics</em> data (AKA the pattern tables!) of the game</p>
+<h3 id="number-3---interrupt-vectors">Number 3 - Interrupt Vectors</h3>
+<p>Pretty self explanatory, go check out the CPU writeup if you don&rsquo;t know what these are.
+<code>Reset</code> interrupt vector resides in
+<code>IRQ</code> interrupt vector resides in
+<code>NMI</code> interrupt vector resides in</p>
+<p>When the CPU boots, it performs a &lsquo;reset&rsquo; - meaning it jumps to the address stored at the <em>reset vector</em> (the <em>reset vector</em> is stored at <code>$fffc</code> and <code>$fffd</code>). That data at <code>$fffc</code> and <code>$fffd</code> is the address of the <em>reset procedure</em> written by the game programmers, which starts the game.</p>
+<h3 id="conclusion">Conclusion</h3>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> Some cartridges use CHR RAM, so that the game actually changes the contents of the cartridge during gameplay, and not just the nametables</p>
+</blockquote>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> Some cartridges also have a PRG RAM chip with a battery for dumping the CPU memory (address range <code>$0000-$0800</code> in CPU memory map) when exiting the game, so progress is saved.</p>
+</blockquote>
+<p>So overall, pretty simple - just the raw code &amp; data, and a small section which specifies where are the ISRs located.</p>
+<h2 id="what-is-a-mapper">What is a mapper?</h2>
+<p>If we go check the <a href="https://www.nesdev.org/wiki/CPU_memory_map">memory map of the CPU</a>, we see that the memory map of the CPU is 16 bits, in the range <code>$0000-$ffff</code> - which gives us <code>($10000 - $4020) / 1024 = (64-16)KB = 48KB</code> of data.
+Similarly for the PPU, the range is <code>$0000-$1fff</code> - which gives us <code>$2000 / 1024 = 8KB</code> of data.</p>
+<p>This is little amount of data. VERY little amount.
+So how does the NES display some pretty good looking games with many levels such as Super Mario Bros 3, Kirby, Legend Of Zelda, etc?</p>
+<p>The answer is&hellip;&hellip;&hellip;</p>
+<p>Mappers! (I bet that one caught you off guard :)</p>
+<p>A Mapper is essentially a small circuit that acts as a &ldquo;middle man&rdquo; between the NES bus, and the cartridge data we just discussed (PRG, CHR, interrupt vectors).</p>
+<p>It lets the game developers create games that use more than just the limited <code>48KB</code> and <code>8KB</code> CPU and PPU memory maps, by exposing some ports (registers) which select a different &ldquo;section&rdquo; of the data.
+These &ldquo;sections&rdquo; the cartridge data is divided into are called <strong>banks</strong>.</p>
+<p>And so by selecting different banks, the NES components can access more data.</p>
+<p>There are a lot of mappers out there (too many if you ask me). Different mappers supports a different number of banks, expose a different set of registers, and have a different mechanism for changing and setting the values of their bank selection registers.</p>
+<p>SOME NOTES:</p>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> Not every mapper exposes bank selection registers - NROM (iNES mapper number 0) provides no &ldquo;extra&rdquo; banks. It supports just the basic NES memory maps, so there is no need for bank selection registers - the same banks are used all the time.</p>
+</blockquote>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> Remember I said there are a lot of mappers? Well&hellip;.. It&rsquo;s kind of true. There are indeed a lot of mappers, but many of them are based off other mappers with some very minor and small modification.
+The main mappers used, and the ones which most other mappers are based off are: NROM, UNROM, CNROM, MMC1, and MMC3.</p>
+</blockquote>
+<h2 id="the-ines-and-nes-20-format">The iNES and NES 2.0 format</h2>
+<p>So in order for your emulator to run a game, it needs to know some stuff like the mapper the game uses (since your emulator implements the mappers - they aren&rsquo;t included in the binary file on your computer), what types of data that mapper uses? (RAM, ROM, or both), what are the sizes of the data included? is there a use of battery backed PRG RAM for save data?, etc</p>
+<p>A common format for storing this information is the iNES format. It&rsquo;s structure is (roughly speaking) pretty simple:</p>
+<pre tabindex="0"><code>------
+iNES header
+------
+PRG data
+------
+CHR data
+</code></pre><p>Now what is NES 2.0 you ask?
+Well although the iNES format was more than enough most of the time, it could be better (contain data in a better order, provide some more information iNES was missing)</p>
+<p>99% of game ROMs I&rsquo;ve came across support iNES, so in my opinion supporting NES 2.0 isn&rsquo;t that big of a deal. Although iNES 2.0 is implemented as an extension, and without many additions to the original iNES - not as a completely new format so adding support for it isn&rsquo;t that hard.</p>
+<p>And as always, for more information check out the NESdev wiki on the <a href="https://www.nesdev.org/wiki/INES">iNES and NES 2.0</a></p>
+
+                    
+                    <HR width="100%" id="EOF">
+		    <p style="color:#777;">Last modified on 2024-04-22</p>
+                    
+                </div>
+            </div>
+            
+            
+            <nav class="post-pagination">
+
+                
+                <a class="newer-posts" href="/series/nes-internals/controls/">
+			Next<br>The NES Internals Series: chapter 5 - The Standard Controller
+                </a>
+                
+                
+                
+                <a class="older-posts" href="/series/nes-internals/ppu-foreground/">
+			Previous<br>The NES Internals Series: chapter 3 - PPU Foreground Rendering
+                </a>
+                
+            </nav>
+            <div class="post-comment-wrapper">
+                
+
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+        </div>
+    </div>
+
+
+                    </div>
+            </div><div id="sideContainer" class="side-container">
+    
+    <a class="a-block nav-head false" href="http://localhost:42897/">
+    
+        <div class="nav-title">
+            My New Hugo Site
+        </div>
+        
+    </a>
+
+    <div class="nav-link-list">
+        
+        
+            
+            
+            
+            
+            
+            <a class="a-block nav-link-item false" href="/posts">
+                Single Posts
+            </a>
+            
+        
+            
+            
+            
+                
+            
+            
+            
+            <a class="a-block nav-link-item active" href="/series">
+                Series
+            </a>
+            
+        
+            
+            
+            
+            
+            
+            <a class="a-block nav-link-item false" href="/about">
+                About
+            </a>
+            
+        
+    </div>
+
+    
+
+    <div class="nav-footer">
+        
+Hugo Theme <a href="https://github.com/amazingrise/hugo-theme-diary">Diary</a> by <a href="https://risehere.net/">Rise</a>
+<br>
+Ported from <a href="https://mak1t0.cc/" target="_blank" rel="noreferrer noopener">Makito</a>'s <a href="https://github.com/SumiMakito/hexo-theme-journal/" target="_blank" rel="noreferrer noopener">Journal.</a> <br>
+<br>
+
+&copy;
+	
+	2024 My New Hugo Site
+	
+
+    </div>
+    
+</div><div id="extraContainer" class="extra-container">
+    <div class="toc-wrapper">
+        
+
+        
+        <div class="toc">
+
+
+	<div class="toc-content">
+	
+		
+		
+		
+		<center>- CATALOG -</center>
+		
+		
+		<ul>
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#introduction" class="nav-introduction">
+									Introduction
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#terminology" class="nav-terminology">
+									Terminology
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#what-is-a-cartridge" class="nav-what-is-a-cartridge">
+									What is a cartridge?
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#number-1---prg" class="nav-number-1---prg">
+									Number 1 - PRG
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#number-2---chr" class="nav-number-2---chr">
+									Number 2 - CHR
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#number-3---interrupt-vectors" class="nav-number-3---interrupt-vectors">
+									Number 3 - Interrupt Vectors
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#conclusion" class="nav-conclusion">
+									Conclusion
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+							
+								</ul>
+							
+						
+						
+						
+							<li>
+								<a href="#what-is-a-mapper" class="nav-what-is-a-mapper">
+									What is a mapper?
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#the-ines-and-nes-20-format" class="nav-the-ines-and-nes-20-format">
+									The iNES and NES 2.0 format
+								</a>
+							</li>
+						
+						
+					
+				
+			
+		</ul>
+	</div>
+
+</div>
+        
+    </div>
+    <div class="pagination">
+        <a id="globalBackToTop" class="pagination-action animated-visibility" href="#top"
+            :class="{ invisible: scrollY == 0 }">
+            <i class="material-icons pagination-action-icon">
+                keyboard_arrow_up
+            </i>
+        </a>
+        
+        <a type="button" class="pagination-action" id="darkModeToggleButton">
+            <span class="material-icons pagination-action-icon" id="darkModeToggleIcon">
+                dark_mode
+            </span>
+        </a>
+        
+        
+    </div>
+</div>
+
+<div id="single-column-footer">
+Hugo Theme <a href="https://github.com/amazingrise/hugo-theme-diary">Diary</a> by <a href="https://risehere.net/">Rise</a>
+<br>
+Ported from <a href="https://mak1t0.cc/" target="_blank" rel="noreferrer noopener">Makito</a>'s <a href="https://github.com/SumiMakito/hexo-theme-journal/" target="_blank" rel="noreferrer noopener">Journal.</a> <br>
+<br>
+
+&copy;
+	
+	2024 My New Hugo Site
+	
+</div>
+            </div>
+    
+    <script src="/js/journal.js"></script></body>
+</html>

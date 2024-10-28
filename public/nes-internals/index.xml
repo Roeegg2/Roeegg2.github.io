@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Nes-Internals on My New Hugo Site</title>
+    <link>http://localhost:38505/nes-internals/</link>
+    <description>Recent content in Nes-Internals on My New Hugo Site</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 14 Mar 2024 15:13:25 +0300</lastBuildDate>
+    <atom:link href="http://localhost:38505/nes-internals/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>NES Internals chapter 1 The CPU</title>
+      <link>http://localhost:38505/nes-internals/2024-03-14-cpu/</link>
+      <pubDate>Thu, 14 Mar 2024 15:13:25 +0300</pubDate>
+      <guid>http://localhost:38505/nes-internals/2024-03-14-cpu/</guid>
+      <description>&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;&#xA;&lt;p&gt;The NES has a slightly modified version of the MOS 6502 CPU.&#xA;This CPU was quite popular back in the day so there is plenty of detailed documentation about it online.&lt;/p&gt;&#xA;&lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;&#xA;&lt;p&gt;We won&amp;rsquo;t be using any fancy emulation/NES terminology here, just basic computer stuff.&#xA;I will explain some terms very simply, if you want a more in depth explanation you can look these things up online.&lt;/p&gt;&#xA;&lt;ul&gt;&#xA;&lt;li&gt;&#xA;&lt;p&gt;&lt;strong&gt;Registers&lt;/strong&gt; - small and fast areas of storage the CPU can fetch data from and write data to.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

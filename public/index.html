@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html><head>
+	<meta name="generator" content="Hugo 0.136.2"><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=42897&amp;path=livereload" data-no-instant defer></script>
+<title>My New Hugo Site</title>
+
+
+
+  
+
+
+<meta charset="utf-8">
+<meta name="X-UA-Compatible" content="IE=edge">
+<meta name="google-site-verification" content="">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+<meta content="telephone=no" name="format-detection">
+<meta name="description" content="">
+<meta name="renderer" content="webkit">
+<meta name="theme-color" content="#ffffff">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+    <link type="text/css" rel="stylesheet" href="/vendor/css/bootstrap.min.css">
+
+<link rel="stylesheet" href="/scss/dark-mode.min.cb53f1bee2b8900cb4f082afbf00175d6618f281cf9a2fe8619e3b52d20b5721.css" integrity="sha256-y1PxvuK4kAy08IKvvwAXXWYY8oHPmi/oYZ47UtILVyE=" media="screen">
+
+
+<link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Material+Icons">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body>
+    	<div id="app"><div class="single-column-drawer-container" id="drawer"
+     v-bind:class="{ 'single-column-drawer-container-active': isDrawerOpen }">
+    <div class="drawer-content">
+        <div class="drawer-menu">
+            
+            
+            
+                
+                
+                
+                
+                
+                <a class="a-block drawer-menu-item false" href="/posts">
+                    Single Posts
+                </a>
+                
+            
+                
+                
+                
+                
+                
+                <a class="a-block drawer-menu-item false" href="/series">
+                    Series
+                </a>
+                
+            
+                
+                
+                
+                
+                
+                <a class="a-block drawer-menu-item false" href="/about">
+                    About
+                </a>
+                
+            
+            
+        </div>
+    </div>
+</div>
+<transition name="fade">
+    <div id="drawer-mask" v-bind:class="{ 'single-column-drawer-mask': mounted }" v-if="isDrawerOpen" v-on:click="toggleDrawer"></div>
+</transition>
+<nav id="navBar" class="navbar sticky-top navbar-light single-column-nav-container">
+    <div id="navBackground" class="nav-background"></div>
+    <div class="container container-narrow nav-content">
+        <button id="nav_dropdown_btn" class="nav-dropdown-toggle" type="button" v-on:click="toggleDrawer">
+            <i class="material-icons">
+                menu
+            </i>
+        </button>
+        <a id="navTitle" class="navbar-brand" href="http://localhost:42897/">
+            My New Hugo Site
+        </a>
+        
+        <button type="button" class="nav-darkmode-toggle" id="darkModeToggleButton2">
+            <i class="material-icons" id="darkModeToggleIcon2">
+                dark_mode
+            </i>
+        </button>
+        
+    </div>
+</nav>
+<div class="single-column-header-container" id="pageHead"
+     v-bind:style="{ transform: 'translateZ(0px) translateY('+.3*scrollY+'px)', opacity: 1-navOpacity }">
+    <a href="http://localhost:42897/">
+        <div class="single-column-header-title">My New Hugo Site</div>
+        
+
+    </a>
+</div>
+
+            <div id="content">
+                <div id="streamContainer" class="stream-container">
+
+    <div class="post-list-container post-list-container-no-background">
+        
+        
+            <a href="/series/nes-internals/2024-05-13-ppu_foreground/" class="a-block">
+                <div class="post-item-wrapper">
+                    <div class="post-item post-item-no-divider">
+                        <div class="post-item-info-wrapper">
+                            <div class="post-item-title">
+                                The PPU Foreground Rendering
+                            </div>
+                            <div class="post-item-summary">
+                                
+                                    <h2 id="terminology">Terminology</h2>
+<ul>
+<li><strong>DMA</strong> - a component in a computer system which can access the system RAM, and other storage areas directly and move data between them without needing the CPU.
+As always, if you want to understand better, go look it up online</li>
+</ul>
+<h2 id="oam">OAM</h2>
+<p>The OAM (object attribute memory) is the place where sprites are stored. It has the size of 256 bytes, and can store 64 sprites.
+Using a short calculation, we get that each sprite entry is the size of <code>256/64 = 4 Bytes</code>.</p>
+                                
+                            </div>
+                            <div class="post-item-meta">
+    2024-05-13
+    &emsp;
+    
+    
+    
+    &emsp;
+    
+</div>
+
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+        
+            <a href="/series/nes-internals/2024-04-23-controls/" class="a-block">
+                <div class="post-item-wrapper">
+                    <div class="post-item post-item-no-divider">
+                        <div class="post-item-info-wrapper">
+                            <div class="post-item-title">
+                                The Standard Controller
+                            </div>
+                            <div class="post-item-summary">
+                                
+                                    <p>These are pretty straight forward.</p>
+<h1 id="for-myself">for myself</h1>
+<p>NES has 2 controller ports, and a rarely used 48 pin expansion port underneath</p>
+<p><strong>NES IO ports</strong>
+1 output port, 3 bits, accesible by writing the bottom 3 bits of 4016</p>
+<p>2 input ports, each is 5 bits wide. accesible by reading the bottom 5 bits of 4016 and 4017
+reading these 2 ports activate pins /OE1 and /OE2</p>
+<p><strong>the standard NES controller dataline</strong></p>
+                                
+                            </div>
+                            <div class="post-item-meta">
+    2024-04-23
+    &emsp;
+    
+    
+    
+    &emsp;
+    
+</div>
+
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+        
+            <a href="/series/nes-internals/2024-04-22-cart-and-mappers/" class="a-block">
+                <div class="post-item-wrapper">
+                    <div class="post-item post-item-no-divider">
+                        <div class="post-item-info-wrapper">
+                            <div class="post-item-title">
+                                The Game Cartrdige &amp; Mappers
+                            </div>
+                            <div class="post-item-summary">
+                                
+                                    <h2 id="introduction">Introduction</h2>
+<p>If you haven&rsquo;t checked out my PPU and CPU writeups, I recommend you go check them out before reading this part, as I&rsquo;m building on top of things I explained there.</p>
+<h2 id="terminology">Terminology</h2>
+<ul>
+<li><strong>ROM</strong> - a type of memory (which unlike RAM) its data cannot change (this is why its also called ROM - &ldquo;read only memory&rdquo;. as you can only read data from it). The data in it is set once by the manufacturer, and cannot be changed again by the CPU.</li>
+</ul>
+<h2 id="what-is-a-cartridge">What is a cartridge?</h2>
+<p>Modern consoles have full operating systems, and some firmware to boot the operating system (like BIOS or UEFI).
+The NES doesn&rsquo;t have any of that - it uses cartridges.
+These are essentially just memory chips (usually ROM, but sometimes RAM) which contains the data of the game.
+The cartridge is made up of (in order):</p>
+                                
+                            </div>
+                            <div class="post-item-meta">
+    2024-04-22
+    &emsp;
+    
+    
+    
+    &emsp;
+    
+</div>
+
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+        
+            <a href="/series/nes-internals/2024-04-06-ppu-background/" class="a-block">
+                <div class="post-item-wrapper">
+                    <div class="post-item post-item-no-divider">
+                        <div class="post-item-info-wrapper">
+                            <div class="post-item-title">
+                                NES Internals Series chapter 2 - PPU Background
+                            </div>
+                            <div class="post-item-summary">
+                                
+                                    <h2 id="prologue">Prologue</h2>
+<p>If you haven&rsquo;t read the CPU writeup yet I highly recommend you go check that writeup first, as I&rsquo;m building on top of stuff presented there. You can check it out <a href="https://roeegg2.github.io/nes-internals-blog/cpu">here</a></p>
+<p>When I started learning how the NES PPU works, one of the things that were very difficult for me was that my mindset was that things are done in the simplest most elegant and logical way.
+If you think the same, please yeet that mindset into a garbage can, because that&rsquo;s not the case here!</p>
+                                
+                            </div>
+                            <div class="post-item-meta">
+    2024-04-06
+    &emsp;
+    
+    
+    
+    &emsp;
+    
+</div>
+
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+        
+            <a href="/series/nes-internals/2024-03-14-cpu/" class="a-block">
+                <div class="post-item-wrapper">
+                    <div class="post-item post-item-no-divider">
+                        <div class="post-item-info-wrapper">
+                            <div class="post-item-title">
+                                &#34;NES Internals chapter 1&#34; - The CPU
+                            </div>
+                            <div class="post-item-summary">
+                                
+                                    <h2 id="introduction">Introduction</h2>
+<p>The NES has a slightly modified version of the MOS 6502 CPU.
+This CPU was quite popular back in the day so there is plenty of detailed documentation about it online.</p>
+<h2 id="terminology">Terminology</h2>
+<p>We won&rsquo;t be using any fancy emulation/NES terminology here, just basic computer stuff.
+I will explain some terms very simply, if you want a more in depth explanation you can look these things up online.</p>
+<ul>
+<li>
+<p><strong>Registers</strong> - small and fast areas of storage the CPU can fetch data from and write data to.</p>
+                                
+                            </div>
+                            <div class="post-item-meta">
+    2024-03-14
+    &emsp;
+    
+    
+    
+    &emsp;
+    
+</div>
+
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+        
+            <a href="/series/2024-03-14-nes-internals-series/" class="a-block">
+                <div class="post-item-wrapper">
+                    <div class="post-item post-item-no-divider">
+                        <div class="post-item-info-wrapper">
+                            <div class="post-item-title">
+                                NES Internals Series
+                            </div>
+                            <div class="post-item-summary">
+                                
+                                    <h2 id="prologue">Prologue</h2>
+<p>In this blog/series I will try to give an introduction to the NES architecture, directed to new emu devs looking to get started.</p>
+<p>The NES has 4 major components:
+The <em>CPU</em>, the <em>PPU</em>, the <em>APU</em>, <em>Cartridge &amp; Mappers</em>, and the <em>Main Bus</em>.</p>
+<ul>
+<li>
+<p><a href="/nes-internals-series/chapter-1"><strong>CPU</strong> - Chapter 1</a></p>
+</li>
+<li>
+<p><a href="/nes-internals-series/chapter-2"><strong>PPU Background</strong> - Chapter 2</a></p>
+</li>
+<li>
+<p><a href="/nes-internals-series/chapter-3"><strong>PPU Foreground</strong> - Chapter 3</a></p>
+</li>
+<li>
+<p><a href="/nes-internals-series/chapter-4"><strong>Cartridge &amp; Mappers</strong> - Chapter 4</a></p>
+</li>
+<li>
+<p><a href="/nes-internals-series/chapter-5"><strong>Controls</strong> - Chapter 5</a></p>
+</li>
+</ul>
+<p>I do plan to write about the rest of the components as well in the future.</p>
+                                
+                            </div>
+                            <div class="post-item-meta">
+    2024-03-14
+    &emsp;
+    
+    
+    
+    &emsp;
+    
+</div>
+
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+        
+            <a href="/posts/elf-plt-and-got/" class="a-block">
+                <div class="post-item-wrapper">
+                    <div class="post-item post-item-no-divider">
+                        <div class="post-item-info-wrapper">
+                            <div class="post-item-title">
+                                The PLT &#43; GOT, Lazy binding &#43; Eager binding
+                            </div>
+                            <div class="post-item-summary">
+                                
+                                    <h1 id="prologue">Prologue</h1>
+<p>This is just a short post explaining the GOT and PLT in the ELF format. No bullshit, just explanation.</p>
+<p>Any assembly here will be x86_64, Intel syntax, but it&rsquo;s the same jist for different architectures as well.</p>
+<h1 id="plt--got-explained-in-a-nutshell">PLT + GOT explained in a nutshell</h1>
+<p>The PLT, GOT and GOT.PLT are all sections in an ELF file.</p>
+<ul>
+<li>The PLT is a table of entries, each entry being a very short code snippet (often times called <em>stub</em>).</li>
+<li>The GOT is also a table of entries, each entry being a an address to some symbol (could be function, global variable, etc).</li>
+<li>The GOT.PLT is simply the part of the GOT which the PLT uses.</li>
+</ul>
+<p>Usually when we call a function, we use <code>call &lt;address of function we want to call&gt;</code>.</p>
+                                
+                            </div>
+                            <div class="post-item-meta">
+    2024-03-06
+    &emsp;
+    
+    
+    
+    &emsp;
+    
+</div>
+
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+        
+            <a href="/posts/tls/" class="a-block">
+                <div class="post-item-wrapper">
+                    <div class="post-item post-item-no-divider">
+                        <div class="post-item-info-wrapper">
+                            <div class="post-item-title">
+                                Summary of Ulrich Drepper&#39;s legendary tls.pdf
+                            </div>
+                            <div class="post-item-summary">
+                                
+                                    <h2 id="disclaimer">Disclaimer:</h2>
+<ol>
+<li>
+<p>The targeted audience of this document is dynamic linker &amp; loader implementors, so important information for other tools (such as linkers and compilers) might be missing.</p>
+</li>
+<li>
+<p>This writeup is DEFINITELY not a substitute for the original document. It is highly recommended to read the original document before reading this summary. I wrote it to help me understand the document better, and to be able to reference things quickly if I forget something. It would be very hard to understand this mechanism without reading the original document first.</p>
+                                
+                            </div>
+                            <div class="post-item-meta">
+    2024-01-10
+    &emsp;
+    
+    
+    
+    &emsp;
+    
+</div>
+
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+        
+            <a href="/series/nes-internals/apu/" class="a-block">
+                <div class="post-item-wrapper">
+                    <div class="post-item post-item-no-divider">
+                        <div class="post-item-info-wrapper">
+                            <div class="post-item-title">
+                                
+                            </div>
+                            <div class="post-item-summary">
+                                
+                                    <h1 id="apu">APU</h1>
+<h2 id="triangle">Triangle</h2>
+                                
+                            </div>
+                            <div class="post-item-meta">
+    0001-01-01
+    &emsp;
+    
+    
+    
+    &emsp;
+    
+</div>
+
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+        
+        </a>
+    </div>
+
+
+                    </div>
+            </div><div id="sideContainer" class="side-container">
+    
+    <a class="a-block nav-head active" href="http://localhost:42897/">
+    
+        <div class="nav-title">
+            My New Hugo Site
+        </div>
+        
+    </a>
+
+    <div class="nav-link-list">
+        
+        
+            
+            
+            
+            
+            
+            <a class="a-block nav-link-item false" href="/posts">
+                Single Posts
+            </a>
+            
+        
+            
+            
+            
+            
+            
+            <a class="a-block nav-link-item false" href="/series">
+                Series
+            </a>
+            
+        
+            
+            
+            
+            
+            
+            <a class="a-block nav-link-item false" href="/about">
+                About
+            </a>
+            
+        
+    </div>
+
+    
+
+    <div class="nav-footer">
+        
+Hugo Theme <a href="https://github.com/amazingrise/hugo-theme-diary">Diary</a> by <a href="https://risehere.net/">Rise</a>
+<br>
+Ported from <a href="https://mak1t0.cc/" target="_blank" rel="noreferrer noopener">Makito</a>'s <a href="https://github.com/SumiMakito/hexo-theme-journal/" target="_blank" rel="noreferrer noopener">Journal.</a> <br>
+<br>
+
+&copy;
+	
+	2024 My New Hugo Site
+	
+
+    </div>
+    
+</div><div id="extraContainer" class="extra-container">
+    <div class="toc-wrapper">
+        
+
+        
+    </div>
+    <div class="pagination">
+        <a id="globalBackToTop" class="pagination-action animated-visibility" href="#top"
+            :class="{ invisible: scrollY == 0 }">
+            <i class="material-icons pagination-action-icon">
+                keyboard_arrow_up
+            </i>
+        </a>
+        
+        <a type="button" class="pagination-action" id="darkModeToggleButton">
+            <span class="material-icons pagination-action-icon" id="darkModeToggleIcon">
+                dark_mode
+            </span>
+        </a>
+        
+        
+        
+        
+    </div>
+</div>
+
+
+
+
+<div id="single-column-footer">
+Hugo Theme <a href="https://github.com/amazingrise/hugo-theme-diary">Diary</a> by <a href="https://risehere.net/">Rise</a>
+<br>
+Ported from <a href="https://mak1t0.cc/" target="_blank" rel="noreferrer noopener">Makito</a>'s <a href="https://github.com/SumiMakito/hexo-theme-journal/" target="_blank" rel="noreferrer noopener">Journal.</a> <br>
+<br>
+
+&copy;
+	
+	2024 My New Hugo Site
+	
+</div>
+            </div>
+    
+    <script src="/js/journal.js"></script></body>
+</html>

@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html><head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=42897&amp;path=livereload" data-no-instant defer></script>
+<title>Summary of Ulrich Drepper&#39;s legendary tls.pdf</title>
+
+
+
+
+<meta charset="utf-8">
+<meta name="X-UA-Compatible" content="IE=edge">
+<meta name="google-site-verification" content="">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+<meta content="telephone=no" name="format-detection">
+<meta name="description" content="">
+<meta name="renderer" content="webkit">
+<meta name="theme-color" content="#ffffff">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+      <script src="/js/toc.js"></script>
+    
+    <link type="text/css" rel="stylesheet" href="/vendor/css/bootstrap.min.css">
+
+<link rel="stylesheet" href="/scss/dark-mode.min.cb53f1bee2b8900cb4f082afbf00175d6618f281cf9a2fe8619e3b52d20b5721.css" integrity="sha256-y1PxvuK4kAy08IKvvwAXXWYY8oHPmi/oYZ47UtILVyE=" media="screen">
+
+
+<link rel="stylesheet"
+          href="https://fonts.googleapis.com/css?family=Material+Icons">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</head>
+<body>
+    	<div id="app"><div class="single-column-drawer-container" id="drawer"
+     v-bind:class="{ 'single-column-drawer-container-active': isDrawerOpen }">
+    <div class="drawer-content">
+        <div class="drawer-menu">
+            
+            
+            
+                
+                
+                
+                    
+                
+                
+                
+                <a class="a-block drawer-menu-item active" href="/posts">
+                    Single Posts
+                </a>
+                
+            
+                
+                
+                
+                
+                
+                <a class="a-block drawer-menu-item false" href="/series">
+                    Series
+                </a>
+                
+            
+                
+                
+                
+                
+                
+                <a class="a-block drawer-menu-item false" href="/about">
+                    About
+                </a>
+                
+            
+            
+            <div class="toc">
+
+
+	<div class="toc-content">
+	
+		
+		
+		
+		<center>- CATALOG -</center>
+		
+		
+		<ul>
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#disclaimer" class="nav-disclaimer">
+									Disclaimer:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#terminology" class="nav-terminology">
+									Terminology:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#general-summary" class="nav-general-summary">
+									General Summary:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#tls-variant-i" class="nav-tls-variant-i">
+									TLS Variant I:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#tls-variant-ii" class="nav-tls-variant-ii">
+									TLS Variant II:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#static-tls" class="nav-static-tls">
+									Static TLS:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#dynamic-tls" class="nav-dynamic-tls">
+									Dynamic TLS:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#startup--later" class="nav-startup--later">
+									Startup &amp; Later
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#__tls_get_addr" class="nav-__tls_get_addr">
+									__tls_get_addr:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#statically-linked-executables" class="nav-statically-linked-executables">
+									Statically linked executables:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+							
+								</ul>
+							
+						
+						
+						
+							<li>
+								<a href="#tls-access-models-specifically-for-0x86_64" class="nav-tls-access-models-specifically-for-0x86_64">
+									TLS Access models (specifically for 0x86_64):
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#general-dynamic-model" class="nav-general-dynamic-model">
+									General dynamic model
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#implementation-example-for-x86_64" class="nav-implementation-example-for-x86_64">
+									Implementation example for x86_64
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+							
+								</ul>
+							
+						
+						
+						
+							<li>
+								<a href="#local-dynamic-model" class="nav-local-dynamic-model">
+									Local dynamic model
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#implementation-example-for-x86_64-1" class="nav-implementation-example-for-x86_64-1">
+									Implementation example for x86_64
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+							
+								</ul>
+							
+						
+						
+						
+							<li>
+								<a href="#initial-exec-model" class="nav-initial-exec-model">
+									Initial exec model
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#implementation-example-for-x86_64-2" class="nav-implementation-example-for-x86_64-2">
+									Implementation example for x86_64
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+							
+								</ul>
+							
+						
+						
+						
+							<li>
+								<a href="#local-exec-model" class="nav-local-exec-model">
+									Local exec model
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#implementation-example-for-x86_64-3" class="nav-implementation-example-for-x86_64-3">
+									Implementation example for x86_64
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+							
+								</ul>
+							
+								</ul>
+							
+						
+						
+						
+							<li>
+								<a href="#my-own-important-notes" class="nav-my-own-important-notes">
+									My own important notes
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#things-i-myself-dont-understand" class="nav-things-i-myself-dont-understand">
+									Things I myself don’t understand
+								</a>
+							</li>
+						
+						
+					
+				
+			
+		</ul>
+	</div>
+
+</div>
+            
+        </div>
+    </div>
+</div>
+<transition name="fade">
+    <div id="drawer-mask" v-bind:class="{ 'single-column-drawer-mask': mounted }" v-if="isDrawerOpen" v-on:click="toggleDrawer"></div>
+</transition>
+<nav id="navBar" class="navbar sticky-top navbar-light single-column-nav-container">
+    <div id="navBackground" class="nav-background"></div>
+    <div class="container container-narrow nav-content">
+        <button id="nav_dropdown_btn" class="nav-dropdown-toggle" type="button" v-on:click="toggleDrawer">
+            <i class="material-icons">
+                menu
+            </i>
+        </button>
+        <a id="navTitle" class="navbar-brand" href="http://localhost:42897/">
+            My New Hugo Site
+        </a>
+        
+        <button type="button" class="nav-darkmode-toggle" id="darkModeToggleButton2">
+            <i class="material-icons" id="darkModeToggleIcon2">
+                dark_mode
+            </i>
+        </button>
+        
+    </div>
+</nav>
+<div class="single-column-header-container" id="pageHead"
+     v-bind:style="{ transform: 'translateZ(0px) translateY('+.3*scrollY+'px)', opacity: 1-navOpacity }">
+    <a href="http://localhost:42897/">
+        <div class="single-column-header-title">My New Hugo Site</div>
+        
+
+    </a>
+</div>
+
+            <div id="content">
+                <div id="streamContainer" class="stream-container">
+
+    <div class="post-list-container post-list-container-shadow">
+        <div class="post">
+            
+            
+            
+
+            <div class="post-head-wrapper-text-only"
+                
+            >
+                <div class="post-title">
+                    Summary of Ulrich Drepper&#39;s legendary tls.pdf
+                    
+                    <div class="post-meta">
+                        
+                        <time itemprop="datePublished">
+                            2024-01-10 00:00
+                        </time>
+                        
+
+                        
+
+                        
+                        
+                    </div>
+                </div>
+            </div>
+            
+            <div class="post-body-wrapper">
+                
+                <div class="post-body" v-pre>
+                
+                    <h2 id="disclaimer">Disclaimer:</h2>
+<ol>
+<li>
+<p>The targeted audience of this document is dynamic linker &amp; loader implementors, so important information for other tools (such as linkers and compilers) might be missing.</p>
+</li>
+<li>
+<p>This writeup is DEFINITELY not a substitute for the original document. It is highly recommended to read the original document before reading this summary. I wrote it to help me understand the document better, and to be able to reference things quickly if I forget something. It would be very hard to understand this mechanism without reading the original document first.</p>
+</li>
+<li>
+<p>There are some differences of implementation across different architectures. I will only cover x86_64 since this is what I care about. If you happen to work on a different architecture, feel free to contribute :)</p>
+</li>
+</ol>
+<h2 id="terminology">Terminology:</h2>
+<ul>
+<li><code>Module</code> - A shared object or executable</li>
+<li><code>modid (Module ID)</code> - A unique identifier for a module</li>
+<li><code>tid (Thread ID)</code> - A unique identifier for a thread</li>
+<li><code>TLS Image</code> - The data stored in the TLS segment of a module</li>
+<li><code>TLS block</code> - An <strong>initilized</strong> TLS image allocated for a thread</li>
+<li><code>TCB (Thread Control Block)</code> - A structure that contains information about a thread</li>
+<li><code>TP (Thread Pointer)</code> - A register that points to the TCB of a thread.</li>
+<li><code>DTV (Dynamic Thread Vector)</code> - A vector that contains pointers to the TLS blocks of a thread.</li>
+</ul>
+<p>To refer to a structure belonging to some thread <code>i</code>, the notation <code>STRUCTUREi</code> is used (e.g. <code>TPi</code>, <code>TCBi</code>, etc).</p>
+<h2 id="general-summary">General Summary:</h2>
+<ul>
+<li>
+<p>TLS variables are stored in a similar format to regular variables (except the <code>SHF_TLS</code> flag is set in the section header). <code>tdata</code> and <code>tbss</code> are the TLS equivalent of <code>.data</code> and <code>.bss</code> sections.</p>
+</li>
+<li>
+<p>At runtime, the dynamic linker must prepare <code>.tbss</code> image - copy it and zero out the uncopied part.</p>
+</li>
+<li>
+<p>Since TLS segment isn&rsquo;t directly accessed (it is used as an image to create one of the blocks for each thread), the <code>ST_VALUE</code> field isn&rsquo;t used to store the offset/address to which the symbol will be loaded - instead, (in executables and shared objects) the <code>ST_VALUE</code> field is used to store the offset of the symbol in the TLS image.</p>
+</li>
+<li>
+<p>The TLS program header is all the dynamic linker needs. (contains <code>.tdata</code> and <code>.tbss</code>)</p>
+</li>
+<li>
+<p>The <code>DF_STATIC_TLS</code> flag marks that the module uses static TLS. (more on that later on)</p>
+</li>
+<li>
+<p>Efficient dynamic linkers should be able to lazily allocate TLS blocks - often times a thread will require only a few TLS variables in certain TLS images. (this method can&rsquo;t be <em>always</em> used though. more on that later)</p>
+</li>
+<li>
+<p>TLS variables are identified using</p>
+<ol>
+<li>the module they are defined in</li>
+<li>the offset in the module&rsquo;s TLS image.</li>
+</ol>
+<p>This is different from regular variables, which are defined simply by an address/offset from load base address. So there is no issue in accessing them.
+So there is a need for some mechanism to map addresses to TLS variables. This is where the following 2 variants come into play.</p>
+</li>
+<li>
+<p>Each architecture uses a different variant. (For more info checkout the original document)</p>
+</li>
+</ul>
+<h3 id="tls-variant-i">TLS Variant I:</h3>
+<p><img src="./assets/tls-variant1.png" alt="Variant I"></p>
+<ul>
+<li>
+<p>First thing <code>DTVi</code> points to is a number <code>GENi</code> which is used to resize the DTV.</p>
+</li>
+<li>
+<p>First field <code>TPi</code> points to must be <code>DTVi</code>. The rest of the fields are typical TCB information (most importantly pointer to the TLS block. But each implementation can add their own fields as they need).</p>
+</li>
+<li>
+<p>TLS blocks allocated at startup are allocated contiguously. That way they can accessed with a fixed offset from <code>TPi</code>.</p>
+</li>
+<li>
+<p>Access to TLS variables <strong>which are in blocks loaded at startup</strong> can be done using either:</p>
+<ol>
+<li><code>DTVi</code> index (ie modid) + offset in the TLS image</li>
+<li>offset from the <code>TPi</code></li>
+</ol>
+</li>
+</ul>
+<h3 id="tls-variant-ii">TLS Variant II:</h3>
+<p><img src="./assets/tls-variant2.png" alt="Variant II"></p>
+<ul>
+<li>
+<p>Almost everything in Variant I applies here too, only differences are:</p>
+<ol>
+<li>The TLS blocks are allocated to the <em>left</em> of <code>TPi</code></li>
+<li>there is no restriction for <code>TPi</code> to have its first field point to <code>DTVi</code>.</li>
+</ol>
+</li>
+<li>
+<p>In both variants, the position of the <code>TCB</code> is computed using architecture-specific formulas: TODO: check what the fuck this is</p>
+</li>
+</ul>
+<p>$$ round(x, y) = y \cdot \lceil \frac{x}{y} \rceil $$</p>
+<p>There are 2 TLS models a module can use - static and dynamic (NOT TO BE CONFUSED WITH STATIC AND DYNAMIC LINKING!)</p>
+<h3 id="static-tls">Static TLS:</h3>
+<ul>
+<li>In this case, TLS images are allocated at program startup. The dynamic linker applies relocations at startup to construct the final address of the variable.</li>
+</ul>
+<h3 id="dynamic-tls">Dynamic TLS:</h3>
+<ul>
+<li>In this model, TLS images are allocated sometime during program runtime (this model is used for example shared objects loaded by calling <code>dlopen</code>). The dynamic linker provides a function called <code>__tls_get_addr</code>, which allocated memory and returns the address of some variable as needed. (more info regarding that function later on)</li>
+</ul>
+<h3 id="startup--later">Startup &amp; Later</h3>
+<ul>
+<li>
+<p>(depends on architecture and runtime, but in general) statically-linked executables do not load any modules dynamically (both at startup using <code>DT_NEEDED</code> and using at runtime <code>dlopen</code>). This means that dealing with TLS here is way simpler:</p>
+<ol>
+<li>There is only a single TLS image, so only a single TLS block for each thread</li>
+<li>TLS blocks can be allocated at startup (they <em>can</em> use dynamic TLS model, but there is no reason to do so)</li>
+</ol>
+</li>
+<li>
+<p>The mechanism of the dynamic linker to deal with TLS looks similar to the following:</p>
+<ol>
+<li>Go over each module and if it uses TLS, save important information from it (all of this is stored in the program header) (Ulrich proposed using a linked list for this, which makes sense, but there is no obligation to do so):
+a. Pointer to the modules TLS image
+b. Size of the TLS images
+c. tlsoffset (offset of the TLS block allocated from the <code>TPi</code>)
+d. flag indicating if the module uses static TLS</li>
+<li>This list will be extended when a module using TLS is loaded at runtime</li>
+</ol>
+</li>
+<li>
+<p>The thread library uses this information to setup the TLS blocks for each thread.</p>
+</li>
+<li>
+<p>Ulrich also mentions the possibility of merging a few static TLS images into a single one to shorten the number of entries in the list.</p>
+</li>
+<li>
+<p>It is also mentioned that in the case that all TLS images are using the static model then:</p>
+</li>
+</ul>
+<p>$$ tlssizeS = tlsoffsetM + tlssizeM $$</p>
+<p>($$M$$ is the number of static TLS modules, $$S$$ refers to the merged TLS image)</p>
+<ul>
+<li>
+<p>Of course if no TLS images use the static model, this space isn&rsquo;t allocated.</p>
+</li>
+<li>
+<p><code>modid</code>&rsquo;s are used to index into the <code>DTV</code>. Runtime is free to choose how it wants to assign these <code>modid</code>&rsquo;s, but the first module (the main executable) should always be assigned <code>modid</code> 1. Of course 2 modules can&rsquo;t have the same <code>modid</code> (UNLESS a module is unloaded. Once the module is unloaded, you can repurpose it&rsquo;s <code>modid</code> (as well as other resources assigned to it, such as TLS image entry for exmaple)).</p>
+</li>
+</ul>
+<h3 id="__tls_get_addr">__tls_get_addr:</h3>
+<ul>
+<li>
+<p>See the original document for exact details for each architecture. In general, it recieves a <code>modid</code> and an offset for a variable in the TLS image. It checks if the current thread has a TLS block for that <code>modid</code>, if not it allocates and initilizes it. Then it returns the address of the variable in the TLS block.</p>
+</li>
+<li>
+<p>As you can see, <code>__tls_get_addr</code> lets us implement lazy allocation of TLS blocks.</p>
+</li>
+<li>
+<p>Theoretically there is no limit to the amount of TLS images a program could have loaded. So the <code>DTVi</code> should be able to grow dynamically as needed. This is exactly what the <code>GENi</code> field is for; when a new thread is created, we first check if the current size of <code>DTVi</code> exceeds <code>GENi</code>, if it does, we reallocate <code>DTVi</code> to be larger (and when we allocate, we allocate a few additional slots and increase <code>GENi</code> by that amount).</p>
+</li>
+</ul>
+<h3 id="statically-linked-executables">Statically linked executables:</h3>
+<ul>
+<li>As stated before, statically linked executables are <em>usually</em> not allowed to load modules at runtime. (and even when they do, only simple modules not using TLS could be loaded). This means that on statically linked executables:
+<ol>
+<li>There is only a single TLS image (that of the executable. 0 TLS images if the executable doesn&rsquo;t use TLS of course)</li>
+<li>That TLS block is allocated on program startup - so static TLS model is used.</li>
+<li>Since there is only a single TLS image, the offsets of the variables can be used as is. (no need for <code>modid</code>)</li>
+</ol>
+</li>
+</ul>
+<h2 id="tls-access-models-specifically-for-0x86_64">TLS Access models (specifically for 0x86_64):</h2>
+<ul>
+<li>
+<p>Whilst regular symbol relocations result in some address, TLS symbol relocatoins should result in a <code>modid</code> and an offset in the TLS image.</p>
+</li>
+<li>
+<p>Since it is discouraged to modify <code>.text</code>, references to TLS variables use the GOT, and the relocation is done on the GOT entry.</p>
+</li>
+</ul>
+<p>There are 4 models for accessing TLS variables:</p>
+<h3 id="general-dynamic-model">General dynamic model</h3>
+<ul>
+<li>Most generic model, and the least efficient.</li>
+<li>This is the default model. The compiler will use a different model only when certain conditions are met, so a more efficient model is possible.</li>
+<li>Code compiled with this model can be used everywhere, and access variables defined anywhere.</li>
+<li>Variable offset and <code>modid</code> are not known, they are decided by the dynamic linker at runtime. They are passed to <code>__tls_get_addr</code> which returns the final address of the variable.</li>
+<li>Since <code>__tls_get_addr</code> is used here, we can defer the allocation of TLS blocks until needed.</li>
+</ul>
+<h4 id="implementation-example-for-x86_64">Implementation example for x86_64</h4>
+<p>Consider the following code snippet:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">extern</span> __thread <span style="color:#66d9ef">int</span> x;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&amp;</span>x;
+</span></span></code></pre></div><ul>
+<li><code>__tls_get_addr</code> is called with a pointer to an <code>tls_index</code> type. This type is defined as follows:</li>
+</ul>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">typedef</span> <span style="color:#66d9ef">struct</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">size_t</span> ti_module;
+</span></span><span style="display:flex;"><span>  <span style="color:#66d9ef">size_t</span> ti_offset;
+</span></span><span style="display:flex;"><span>} tls_index;
+</span></span></code></pre></div><ul>
+<li>
+<p><code>R_X86_64_TLSGD</code> relocation instructs the linker to allocate a <code>tls_index</code> in the GOT (if the linker chooses GOT entry <code>n</code> to place this type in, <code>ti_module</code> and <code>ti_offset</code> will be placed at <code>GOT[n]</code> and <code>GOT[n+1]</code> respectively).</p>
+</li>
+<li>
+<p><code>R_X86_64_DTPMOD64</code> relocation is used by the dynamic linker to set <code>ti_module</code> to the <code>modid</code> of the variable.</p>
+</li>
+<li>
+<p><code>R_X86_64_DTPOFF64</code> relocation is used by the dynamic linker to set <code>ti_offset</code> to the offset of the variable in the TLS image.</p>
+</li>
+</ul>
+<h3 id="local-dynamic-model">Local dynamic model</h3>
+<ul>
+<li>An optimisation of the general dynamic model.</li>
+<li>This model is used when the compiler knows that the variable is defined in the same module it referenced in. (for example <em>static global</em> or <em>protected/hidden</em> variables). This optimisation is possible because we know the <em>offset</em> at link time.</li>
+<li>By passing <code>0</code> as the offset to <code>__tls_get_addr</code> we get the start of the TLS images. Then this value can be saved and easily just added to the offset of the variable to get the final address. Good compilers generate code that does this.</li>
+</ul>
+<h4 id="implementation-example-for-x86_64-1">Implementation example for x86_64</h4>
+<p>Consider the following code snippet:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">static</span> __thread <span style="color:#66d9ef">int</span> x1;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">static</span> __thread <span style="color:#66d9ef">int</span> x2;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&amp;</span>x1;
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&amp;</span>x2;
+</span></span></code></pre></div><ul>
+<li>Since in this case we already have the offsets, the only relocation required is <code>R_X86_64_DTPMOD64</code>.</li>
+</ul>
+<h3 id="initial-exec-model">Initial exec model</h3>
+<ul>
+<li>This is an optimisation we can use when we know that the module uses the static TLS model. In that case, the TLS block is allocated at startup, so we can easily know the <code>modid</code> and the offset of the variable. All we need to figure out in runtime is the offset from the TLS image to TP.</li>
+</ul>
+<h4 id="implementation-example-for-x86_64-2">Implementation example for x86_64</h4>
+<p>Consider again the following code snippet:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">extern</span> __thread <span style="color:#66d9ef">int</span> x;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&amp;</span>x;
+</span></span></code></pre></div><ul>
+<li>Only relocation required is <code>R_X86_64_TPOFF64</code> it is processed by finding the symbol in the TLS image, then adding the variable offset to the offset of the image to TP, and writing it to the GOT entry (where the relocation needs to be applied).</li>
+</ul>
+<h3 id="local-exec-model">Local exec model</h3>
+<ul>
+<li>This is an optimisation of the local dynamic module. This is the special case in which the module is the main executable. In this case, the <code>modid</code> is always 1, so it&rsquo;s TLS block is always the first one. That means we don&rsquo;t need to know <em>anything</em> about the other blocks.</li>
+</ul>
+<h4 id="implementation-example-for-x86_64-3">Implementation example for x86_64</h4>
+<p>Consider the following code snippet:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-c" data-lang="c"><span style="display:flex;"><span><span style="color:#66d9ef">static</span> __thread <span style="color:#66d9ef">int</span> x;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#f92672">&amp;</span>x;
+</span></span></code></pre></div><ul>
+<li>The only relocation required is <code>R_X86_64_TPOFF64</code>. The offset of the variable is known at link time, so the only thing that needs to be done is to add the offset from TP.</li>
+</ul>
+<h2 id="my-own-important-notes">My own important notes</h2>
+<ul>
+<li>TLS symbols ALWAYS requires relocation - this is because the base address of the TLS block is decided by the dynamic linker at runtime.</li>
+<li>Even if some modules are using dynamic TLS, it might be faster and more efficient somtimes to allocate the TLS blocks rightway, instead of doing it lazily. This is usually true when the TLS image of the module is small anyway.</li>
+<li>The similar optimisation used for <code>DTVi</code> using <code>GENi</code> can be used for <code>DTV</code> as well (if your implementation holds all <code>DTVi</code> in one vector and not independently).</li>
+</ul>
+<h2 id="things-i-myself-dont-understand">Things I myself don&rsquo;t understand</h2>
+<ul>
+<li>Computing the thread-specific address of a TLS variable is therefore a simple oper-
+ation which can be performed by compiler-generated code which uses variant I. But it
+cannot be done by the compiler for architectures following variant II and there is also
+a good reason to not do it: deferred allocation (see below). - don&rsquo;t understand what this means</li>
+</ul>
+
+                    
+                    <HR width="100%" id="EOF">
+		    <p style="color:#777;">Last modified on 2024-01-10</p>
+                    
+                </div>
+            </div>
+            
+            
+            <nav class="post-pagination">
+
+                
+                <a class="newer-posts" href="/posts/elf-plt-and-got/">
+			Next<br>The PLT &#43; GOT, Lazy binding &#43; Eager binding
+                </a>
+                
+                
+                
+                <a class="older-posts" href="/series/nes-internals/apu/">
+			Previous<br>
+                </a>
+                
+            </nav>
+            <div class="post-comment-wrapper">
+                
+
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+        </div>
+    </div>
+
+
+                    </div>
+            </div><div id="sideContainer" class="side-container">
+    
+    <a class="a-block nav-head false" href="http://localhost:42897/">
+    
+        <div class="nav-title">
+            My New Hugo Site
+        </div>
+        
+    </a>
+
+    <div class="nav-link-list">
+        
+        
+            
+            
+            
+                
+            
+            
+            
+            <a class="a-block nav-link-item active" href="/posts">
+                Single Posts
+            </a>
+            
+        
+            
+            
+            
+            
+            
+            <a class="a-block nav-link-item false" href="/series">
+                Series
+            </a>
+            
+        
+            
+            
+            
+            
+            
+            <a class="a-block nav-link-item false" href="/about">
+                About
+            </a>
+            
+        
+    </div>
+
+    
+
+    <div class="nav-footer">
+        
+Hugo Theme <a href="https://github.com/amazingrise/hugo-theme-diary">Diary</a> by <a href="https://risehere.net/">Rise</a>
+<br>
+Ported from <a href="https://mak1t0.cc/" target="_blank" rel="noreferrer noopener">Makito</a>'s <a href="https://github.com/SumiMakito/hexo-theme-journal/" target="_blank" rel="noreferrer noopener">Journal.</a> <br>
+<br>
+
+&copy;
+	
+	2024 My New Hugo Site
+	
+
+    </div>
+    
+</div><div id="extraContainer" class="extra-container">
+    <div class="toc-wrapper">
+        
+
+        
+        <div class="toc">
+
+
+	<div class="toc-content">
+	
+		
+		
+		
+		<center>- CATALOG -</center>
+		
+		
+		<ul>
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#disclaimer" class="nav-disclaimer">
+									Disclaimer:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#terminology" class="nav-terminology">
+									Terminology:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#general-summary" class="nav-general-summary">
+									General Summary:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#tls-variant-i" class="nav-tls-variant-i">
+									TLS Variant I:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#tls-variant-ii" class="nav-tls-variant-ii">
+									TLS Variant II:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#static-tls" class="nav-static-tls">
+									Static TLS:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#dynamic-tls" class="nav-dynamic-tls">
+									Dynamic TLS:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#startup--later" class="nav-startup--later">
+									Startup &amp; Later
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#__tls_get_addr" class="nav-__tls_get_addr">
+									__tls_get_addr:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#statically-linked-executables" class="nav-statically-linked-executables">
+									Statically linked executables:
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+							
+								</ul>
+							
+						
+						
+						
+							<li>
+								<a href="#tls-access-models-specifically-for-0x86_64" class="nav-tls-access-models-specifically-for-0x86_64">
+									TLS Access models (specifically for 0x86_64):
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#general-dynamic-model" class="nav-general-dynamic-model">
+									General dynamic model
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#implementation-example-for-x86_64" class="nav-implementation-example-for-x86_64">
+									Implementation example for x86_64
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+							
+								</ul>
+							
+						
+						
+						
+							<li>
+								<a href="#local-dynamic-model" class="nav-local-dynamic-model">
+									Local dynamic model
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#implementation-example-for-x86_64-1" class="nav-implementation-example-for-x86_64-1">
+									Implementation example for x86_64
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+							
+								</ul>
+							
+						
+						
+						
+							<li>
+								<a href="#initial-exec-model" class="nav-initial-exec-model">
+									Initial exec model
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#implementation-example-for-x86_64-2" class="nav-implementation-example-for-x86_64-2">
+									Implementation example for x86_64
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+							
+								</ul>
+							
+						
+						
+						
+							<li>
+								<a href="#local-exec-model" class="nav-local-exec-model">
+									Local exec model
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+							
+								
+									<ul>
+								
+							
+						
+						
+							<li>
+								<a href="#implementation-example-for-x86_64-3" class="nav-implementation-example-for-x86_64-3">
+									Implementation example for x86_64
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+							
+								</ul>
+							
+								</ul>
+							
+						
+						
+						
+							<li>
+								<a href="#my-own-important-notes" class="nav-my-own-important-notes">
+									My own important notes
+								</a>
+							</li>
+						
+						
+					
+				
+			
+				
+				
+					
+						
+						
+						
+						
+						
+							<li>
+								<a href="#things-i-myself-dont-understand" class="nav-things-i-myself-dont-understand">
+									Things I myself don’t understand
+								</a>
+							</li>
+						
+						
+					
+				
+			
+		</ul>
+	</div>
+
+</div>
+        
+    </div>
+    <div class="pagination">
+        <a id="globalBackToTop" class="pagination-action animated-visibility" href="#top"
+            :class="{ invisible: scrollY == 0 }">
+            <i class="material-icons pagination-action-icon">
+                keyboard_arrow_up
+            </i>
+        </a>
+        
+        <a type="button" class="pagination-action" id="darkModeToggleButton">
+            <span class="material-icons pagination-action-icon" id="darkModeToggleIcon">
+                dark_mode
+            </span>
+        </a>
+        
+        
+    </div>
+</div>
+
+<div id="single-column-footer">
+Hugo Theme <a href="https://github.com/amazingrise/hugo-theme-diary">Diary</a> by <a href="https://risehere.net/">Rise</a>
+<br>
+Ported from <a href="https://mak1t0.cc/" target="_blank" rel="noreferrer noopener">Makito</a>'s <a href="https://github.com/SumiMakito/hexo-theme-journal/" target="_blank" rel="noreferrer noopener">Journal.</a> <br>
+<br>
+
+&copy;
+	
+	2024 My New Hugo Site
+	
+</div>
+            </div>
+    
+    <script src="/js/journal.js"></script></body>
+</html>

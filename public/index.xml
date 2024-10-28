@@ -1,0 +1,1255 @@
+<?xml-stylesheet href="/rss.xsl" type="text/xsl"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>My New Hugo Site</title>
+    <link>http://localhost:42897/</link>
+    <description>Recent content on My New Hugo Site</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 13 May 2024 15:13:25 +0300</lastBuildDate>
+    
+        <atom:link href="http://localhost:42897/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    
+        <item>
+        <title>The PPU Foreground Rendering</title>
+        <link>http://localhost:42897/series/nes-internals/2024-05-13-ppu_foreground/</link>
+        <pubDate>Mon, 13 May 2024 15:13:25 +0300</pubDate>
+        
+        <guid>http://localhost:42897/series/nes-internals/2024-05-13-ppu_foreground/</guid>
+        <description>My New Hugo Site http://localhost:42897/series/nes-internals/2024-05-13-ppu_foreground/ -&lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;DMA&lt;/strong&gt; - a component in a computer system which can access the system RAM, and other storage areas directly and move data between them without needing the CPU.
+As always, if you want to understand better, go look it up online&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;oam&#34;&gt;OAM&lt;/h2&gt;
+&lt;p&gt;The OAM (object attribute memory) is the place where sprites are stored. It has the size of 256 bytes, and can store 64 sprites.
+Using a short calculation, we get that each sprite entry is the size of &lt;code&gt;256/64 = 4 Bytes&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;There is another memory area called secondary OAM, which can hold up to 8 sprites (32 bytes).
+Data is written to OAM, and then transfered over to secondary OAM, from which the sprites are actually drawn&lt;/p&gt;
+&lt;h3 id=&#34;byte-0&#34;&gt;Byte 0&lt;/h3&gt;
+&lt;p&gt;This byte contains the Y position of the sprite, counted from the top of the screen.
+The value here is actually subtracted by 1, to get the actual Y value of the sprite. I will explain the reasoning behind this later on.&lt;/p&gt;
+&lt;h3 id=&#34;byte-1&#34;&gt;Byte 1&lt;/h3&gt;
+&lt;p&gt;This byte contains the tile number to be used, to index into the pattern tables.
+Its use differs between 8x16 and 8x8:&lt;/p&gt;
+&lt;p&gt;From the background graphics chapter, we already know we know the PPU can address 2 pattern tables (&lt;code&gt;$0000-$0fff&lt;/code&gt; and &lt;code&gt;$1000-$1fff&lt;/code&gt;).
+For 8x8 sprites, the decision of which pattern table to use is given by bit 3 of PPUCTRL.
+For 8x16 sprites, bit 0 of the this byte, is used to select the pattern table.&lt;/p&gt;
+&lt;h3 id=&#34;byte-2&#34;&gt;Byte 2&lt;/h3&gt;
+&lt;p&gt;This byte contains some important attribute data about the sprite: palette group used, sprite priority, and whether the sprite should be rendered flipped (both vertically or horizontally)&lt;/p&gt;
+&lt;h3 id=&#34;byte-3&#34;&gt;Byte 3&lt;/h3&gt;
+&lt;p&gt;The X position of the sprite, counted from the left of the sprite (ie the first pixel)&lt;/p&gt;
+&lt;p&gt;Thats it! That&amp;rsquo;s how sprites are represented in the NES.&lt;/p&gt;
+&lt;h2 id=&#34;dma&#34;&gt;DMA&lt;/h2&gt;
+&lt;p&gt;Remember I said the PPU copies data from primary OAM into secondary OAM?
+Well the PPU has 2 options to perform these copies:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Copying using OAMADDR and OAMDATA&lt;/li&gt;
+&lt;li&gt;Copying using DMA&lt;/li&gt;
+&lt;/ol&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; In contrast to the usual way a the case of the NES, the CPU is actually halted while the DMA is copying data to secondary OAM, so it doesn&amp;rsquo;t have that advantage, but the copy is actually way faster using DMA (it takes 2 cycles to copy a byte using DMA, and the CPU has overhead of resolving the addressing mode, fetching the next instruction, etc.)&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;In order to instruct the DMA to activate, and copy the contents of &lt;em&gt;primary OAM&lt;/em&gt; into &lt;em&gt;secondary OAM&lt;/em&gt;, the programmer can write some value to the &lt;strong&gt;OAMDMA&lt;/strong&gt; register.
+After that register is written the CPU is halted and a copy takes place.&lt;/p&gt;
+&lt;h2 id=&#34;sprite-priority--overlapping&#34;&gt;Sprite priority &amp;amp; overlapping&lt;/h2&gt;
+&lt;p&gt;*As we&amp;rsquo;ve seen, the &lt;em&gt;PPU background&lt;/em&gt; and &lt;em&gt;PPU foreground&lt;/em&gt; rendering mechanism operates independently of each other.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;So what happens when a sprite pixel overlaps a background pixel?&lt;/li&gt;
+&lt;li&gt;And if we&amp;rsquo;re already talking about overlapping, what happens if we have 2 sprites which overlap on some pixel?&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;question-2-answer&#34;&gt;Question 2 answer:&lt;/h3&gt;
+&lt;p&gt;Sprite priority is determined by the position of the sprites in OAM - the lower the sprite position is (0, 1, 2) the higher it&amp;rsquo;s priority is.
+So if Sprite A overlaps Sprite B at some pixel, and lets say Sprite A is at OAM index 4, and Sprite B is at OAM index 20, then Sprite A &amp;ldquo;wins&amp;rdquo; and gets to have the pixel!&lt;/p&gt;
+&lt;h3 id=&#34;question-1-answer&#34;&gt;Question 1 answer:&lt;/h3&gt;
+&lt;p&gt;Quoted from the NESdev wiki: &lt;em&gt;&amp;ldquo;if the frontmost opaque sprite&amp;rsquo;s priority bit is true (1), an opaque background pixel is drawn in front of it.&amp;rdquo;&lt;/em&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; Yes, if a sprites priority bit is 1, it means it should be &lt;strong&gt;behind&lt;/strong&gt; the background. If it&amp;rsquo;s 0 then it should be &lt;strong&gt;infront&lt;/strong&gt; of background.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;These weird behaviors have let NES game developers to create some unique and creative visual effects.&lt;/p&gt;
+- http://localhost:42897/series/nes-internals/2024-05-13-ppu_foreground/ - </description>
+        </item>
+    
+    
+    
+        <item>
+        <title>The Standard Controller</title>
+        <link>http://localhost:42897/series/nes-internals/2024-04-23-controls/</link>
+        <pubDate>Tue, 23 Apr 2024 15:13:25 +0300</pubDate>
+        
+        <guid>http://localhost:42897/series/nes-internals/2024-04-23-controls/</guid>
+        <description>My New Hugo Site http://localhost:42897/series/nes-internals/2024-04-23-controls/ -&lt;p&gt;These are pretty straight forward.&lt;/p&gt;
+&lt;h1 id=&#34;for-myself&#34;&gt;for myself&lt;/h1&gt;
+&lt;p&gt;NES has 2 controller ports, and a rarely used 48 pin expansion port underneath&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;NES IO ports&lt;/strong&gt;
+1 output port, 3 bits, accesible by writing the bottom 3 bits of 4016&lt;/p&gt;
+&lt;p&gt;2 input ports, each is 5 bits wide. accesible by reading the bottom 5 bits of 4016 and 4017
+reading these 2 ports activate pins /OE1 and /OE2&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;the standard NES controller dataline&lt;/strong&gt;&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;0 - A
+1 - B
+2 - Select
+3 - Start
+4 - Up
+5 - Down
+6 - Left
+7 - Right
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;after ? reads all the 8 bits, all the bits will turn into 1. (3rd party and other controllers might report differently here)&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;input (4016 write)&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;while bit 0 (S) (strobe) is 1, the controller shift regs are reloaded from the button states. reading 4016/4017 will return the current state of the first button A.
+when bit 0 (S) turns 0, reloading will be stopped&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;output 4016/4017&lt;/strong&gt;
+in order to get the status of controller 1 and controller 2, you must write to 4016 and then read 4016 (for controller 1) and read 4017 (for controller 2)&lt;/p&gt;
+&lt;p&gt;first 8 reads will indicate which buttons/directions are pressed (1 for pressed, 0 for not pressed). all other reads will return 1 on the official NES controllers, but other 3rd party controllers report 0.&lt;/p&gt;
+&lt;p&gt;the status for each controller is return as 1 byte (8 bits), in the following order: A,B,Select,Start,Up,Down,Left,Right&lt;/p&gt;
+&lt;p&gt;when no controller is connected, all bits return 0.&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;Write 1 to $4016 to signal the controller to poll its input
+Write 0 to $4016 to finish the poll
+Read polled data one bit at a time from $4016 or $4017&lt;/p&gt;
+- http://localhost:42897/series/nes-internals/2024-04-23-controls/ - </description>
+        </item>
+    
+    
+    
+        <item>
+        <title>The Game Cartrdige &amp; Mappers</title>
+        <link>http://localhost:42897/series/nes-internals/2024-04-22-cart-and-mappers/</link>
+        <pubDate>Mon, 22 Apr 2024 15:13:25 +0300</pubDate>
+        
+        <guid>http://localhost:42897/series/nes-internals/2024-04-22-cart-and-mappers/</guid>
+        <description>My New Hugo Site http://localhost:42897/series/nes-internals/2024-04-22-cart-and-mappers/ -&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;If you haven&amp;rsquo;t checked out my PPU and CPU writeups, I recommend you go check them out before reading this part, as I&amp;rsquo;m building on top of things I explained there.&lt;/p&gt;
+&lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;ROM&lt;/strong&gt; - a type of memory (which unlike RAM) its data cannot change (this is why its also called ROM - &amp;ldquo;read only memory&amp;rdquo;. as you can only read data from it). The data in it is set once by the manufacturer, and cannot be changed again by the CPU.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;what-is-a-cartridge&#34;&gt;What is a cartridge?&lt;/h2&gt;
+&lt;p&gt;Modern consoles have full operating systems, and some firmware to boot the operating system (like BIOS or UEFI).
+The NES doesn&amp;rsquo;t have any of that - it uses cartridges.
+These are essentially just memory chips (usually ROM, but sometimes RAM) which contains the data of the game.
+The cartridge is made up of (in order):&lt;/p&gt;
+&lt;h3 id=&#34;number-1---prg&#34;&gt;Number 1 - PRG&lt;/h3&gt;
+&lt;p&gt;A ROM chip containing the &lt;em&gt;code&lt;/em&gt; of the game&lt;/p&gt;
+&lt;h3 id=&#34;number-2---chr&#34;&gt;Number 2 - CHR&lt;/h3&gt;
+&lt;p&gt;A ROM chip containing the &lt;em&gt;graphics&lt;/em&gt; data (AKA the pattern tables!) of the game&lt;/p&gt;
+&lt;h3 id=&#34;number-3---interrupt-vectors&#34;&gt;Number 3 - Interrupt Vectors&lt;/h3&gt;
+&lt;p&gt;Pretty self explanatory, go check out the CPU writeup if you don&amp;rsquo;t know what these are.
+&lt;code&gt;Reset&lt;/code&gt; interrupt vector resides in
+&lt;code&gt;IRQ&lt;/code&gt; interrupt vector resides in
+&lt;code&gt;NMI&lt;/code&gt; interrupt vector resides in&lt;/p&gt;
+&lt;p&gt;When the CPU boots, it performs a &amp;lsquo;reset&amp;rsquo; - meaning it jumps to the address stored at the &lt;em&gt;reset vector&lt;/em&gt; (the &lt;em&gt;reset vector&lt;/em&gt; is stored at &lt;code&gt;$fffc&lt;/code&gt; and &lt;code&gt;$fffd&lt;/code&gt;). That data at &lt;code&gt;$fffc&lt;/code&gt; and &lt;code&gt;$fffd&lt;/code&gt; is the address of the &lt;em&gt;reset procedure&lt;/em&gt; written by the game programmers, which starts the game.&lt;/p&gt;
+&lt;h3 id=&#34;conclusion&#34;&gt;Conclusion&lt;/h3&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; Some cartridges use CHR RAM, so that the game actually changes the contents of the cartridge during gameplay, and not just the nametables&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; Some cartridges also have a PRG RAM chip with a battery for dumping the CPU memory (address range &lt;code&gt;$0000-$0800&lt;/code&gt; in CPU memory map) when exiting the game, so progress is saved.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;So overall, pretty simple - just the raw code &amp;amp; data, and a small section which specifies where are the ISRs located.&lt;/p&gt;
+&lt;h2 id=&#34;what-is-a-mapper&#34;&gt;What is a mapper?&lt;/h2&gt;
+&lt;p&gt;If we go check the &lt;a href=&#34;https://www.nesdev.org/wiki/CPU_memory_map&#34;&gt;memory map of the CPU&lt;/a&gt;, we see that the memory map of the CPU is 16 bits, in the range &lt;code&gt;$0000-$ffff&lt;/code&gt; - which gives us &lt;code&gt;($10000 - $4020) / 1024 = (64-16)KB = 48KB&lt;/code&gt; of data.
+Similarly for the PPU, the range is &lt;code&gt;$0000-$1fff&lt;/code&gt; - which gives us &lt;code&gt;$2000 / 1024 = 8KB&lt;/code&gt; of data.&lt;/p&gt;
+&lt;p&gt;This is little amount of data. VERY little amount.
+So how does the NES display some pretty good looking games with many levels such as Super Mario Bros 3, Kirby, Legend Of Zelda, etc?&lt;/p&gt;
+&lt;p&gt;The answer is&amp;hellip;&amp;hellip;&amp;hellip;&lt;/p&gt;
+&lt;p&gt;Mappers! (I bet that one caught you off guard :)&lt;/p&gt;
+&lt;p&gt;A Mapper is essentially a small circuit that acts as a &amp;ldquo;middle man&amp;rdquo; between the NES bus, and the cartridge data we just discussed (PRG, CHR, interrupt vectors).&lt;/p&gt;
+&lt;p&gt;It lets the game developers create games that use more than just the limited &lt;code&gt;48KB&lt;/code&gt; and &lt;code&gt;8KB&lt;/code&gt; CPU and PPU memory maps, by exposing some ports (registers) which select a different &amp;ldquo;section&amp;rdquo; of the data.
+These &amp;ldquo;sections&amp;rdquo; the cartridge data is divided into are called &lt;strong&gt;banks&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;And so by selecting different banks, the NES components can access more data.&lt;/p&gt;
+&lt;p&gt;There are a lot of mappers out there (too many if you ask me). Different mappers supports a different number of banks, expose a different set of registers, and have a different mechanism for changing and setting the values of their bank selection registers.&lt;/p&gt;
+&lt;p&gt;SOME NOTES:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; Not every mapper exposes bank selection registers - NROM (iNES mapper number 0) provides no &amp;ldquo;extra&amp;rdquo; banks. It supports just the basic NES memory maps, so there is no need for bank selection registers - the same banks are used all the time.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; Remember I said there are a lot of mappers? Well&amp;hellip;.. It&amp;rsquo;s kind of true. There are indeed a lot of mappers, but many of them are based off other mappers with some very minor and small modification.
+The main mappers used, and the ones which most other mappers are based off are: NROM, UNROM, CNROM, MMC1, and MMC3.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;the-ines-and-nes-20-format&#34;&gt;The iNES and NES 2.0 format&lt;/h2&gt;
+&lt;p&gt;So in order for your emulator to run a game, it needs to know some stuff like the mapper the game uses (since your emulator implements the mappers - they aren&amp;rsquo;t included in the binary file on your computer), what types of data that mapper uses? (RAM, ROM, or both), what are the sizes of the data included? is there a use of battery backed PRG RAM for save data?, etc&lt;/p&gt;
+&lt;p&gt;A common format for storing this information is the iNES format. It&amp;rsquo;s structure is (roughly speaking) pretty simple:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;------
+iNES header
+------
+PRG data
+------
+CHR data
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Now what is NES 2.0 you ask?
+Well although the iNES format was more than enough most of the time, it could be better (contain data in a better order, provide some more information iNES was missing)&lt;/p&gt;
+&lt;p&gt;99% of game ROMs I&amp;rsquo;ve came across support iNES, so in my opinion supporting NES 2.0 isn&amp;rsquo;t that big of a deal. Although iNES 2.0 is implemented as an extension, and without many additions to the original iNES - not as a completely new format so adding support for it isn&amp;rsquo;t that hard.&lt;/p&gt;
+&lt;p&gt;And as always, for more information check out the NESdev wiki on the &lt;a href=&#34;https://www.nesdev.org/wiki/INES&#34;&gt;iNES and NES 2.0&lt;/a&gt;&lt;/p&gt;
+- http://localhost:42897/series/nes-internals/2024-04-22-cart-and-mappers/ - </description>
+        </item>
+    
+    
+    
+        <item>
+        <title>NES Internals Series chapter 2 - PPU Background</title>
+        <link>http://localhost:42897/series/nes-internals/2024-04-06-ppu-background/</link>
+        <pubDate>Sat, 06 Apr 2024 15:13:25 +0300</pubDate>
+        
+        <guid>http://localhost:42897/series/nes-internals/2024-04-06-ppu-background/</guid>
+        <description>My New Hugo Site http://localhost:42897/series/nes-internals/2024-04-06-ppu-background/ -&lt;h2 id=&#34;prologue&#34;&gt;Prologue&lt;/h2&gt;
+&lt;p&gt;If you haven&amp;rsquo;t read the CPU writeup yet I highly recommend you go check that writeup first, as I&amp;rsquo;m building on top of stuff presented there. You can check it out &lt;a href=&#34;https://roeegg2.github.io/nes-internals-blog/cpu&#34;&gt;here&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;When I started learning how the NES PPU works, one of the things that were very difficult for me was that my mindset was that things are done in the simplest most elegant and logical way.
+If you think the same, please yeet that mindset into a garbage can, because that&amp;rsquo;s not the case here!&lt;/p&gt;
+&lt;p&gt;Although there is definitely logic in the way the PPU is working,
+It&amp;rsquo;s internals and the way some components work is very awkward - simply because this was the
+cheapest/easiest option Nintendo had. Nevertheless, it definitely is cool to see the unique methods Nintendo
+used here to try and squeeze the most out of the PPU&amp;rsquo;s hardware.&lt;/p&gt;
+&lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;for Part 1:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;scanline&lt;/strong&gt; - the current line the PPU is currently rendering at (the &amp;ldquo;y&amp;rdquo; value)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;dot/cycle&lt;/strong&gt; - the current cycle of the PPU, counting from the start of the scanline. So each new scanline,
+this value gets reset to 0. The &amp;ldquo;x&amp;rdquo; value of a pixel (calculated using &lt;code&gt;current cycle - 1&lt;/code&gt;, since cycle
+0 is idle)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;VRAM&lt;/strong&gt; - short for video memory. This is a volatile area of storage (unlike game ROMS) &lt;strong&gt;inside the NES&lt;/strong&gt;
+(important to remember for later on when we get into mappers) where information used to determine the color of
+each pixel is stored. (in a nutshell, its like the CPU&amp;rsquo;s ram, but for the PPU).&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;for Part 2:&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Tile&lt;/strong&gt; - a unit used to logically divide the NES screen. Each tile is a square of 8x8 &lt;em&gt;pixels&lt;/em&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Block&lt;/strong&gt; - a unit used to logically divide the NES screen. Each block is a square of 2x2 &lt;em&gt;tiles&lt;/em&gt;
+(or 16x16 &lt;em&gt;pixels&lt;/em&gt;)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Quadrant&lt;/strong&gt; - (yet another unit) used to logically divide the NES screen. Each quadrant is a square of
+2x2 &lt;em&gt;blocks&lt;/em&gt;, which are 4x4 &lt;em&gt;tiles&lt;/em&gt; (or 32x32 &lt;em&gt;pixels&lt;/em&gt;)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Sprite&lt;/strong&gt; - a name given to a piece of data to be rendered.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; This includes both background (the ground, the sky, mario super block, etc) and
+foreground (mostly characters and special effects). This is a different definition that
+&lt;em&gt;character/foreground sprite&lt;/em&gt; which is &lt;strong&gt;kind of a sprite&lt;/strong&gt;, used to represent a foreground piece of
+rendering data&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;part-1---getting-a-mental-image-on-what-rendering-looks-like&#34;&gt;Part 1 - Getting a mental image on what rendering looks like&lt;/h2&gt;
+&lt;p&gt;At a fundamental level, the PPU goes over each pixel and sets its color, using certain information we will look at later on.
+Here&amp;rsquo;s a simple psuedo-code that shows in a very abstracted way what the PPU is doing:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-psuedo&#34; data-lang=&#34;psuedo&#34;&gt;for each line on screen:
+    for each pixel in that line:
+        set pixel color
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;The PPU goes over 261 scanlines, each one of them consists of 340 cycles.
+each cycle between 1 and 256, it renders a pixel. &lt;code&gt;256-1 = 255&lt;/code&gt; pixels total each scanline.&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-psuedo&#34; data-lang=&#34;psuedo&#34;&gt;scanline 0 &amp;lt;- first cycle of the visible scanlines
+scanline 1
+scanline 2
+.
+.
+.
+scanline 239 &amp;lt;- last cycle of the visible scanlines
+scanline 240 &amp;lt;- first cycle of the vertical blank scanlines
+scanline 241
+.
+.
+scanline 260 &amp;lt;- the last cycle of the vertical blank scanlines
+scanline 261 &amp;lt;- the pre-render scanline
+
+And after scanline 261, it goes back to scanline 0.
+Unlike the CPU, which its flow of execution is determined by the code of the game, the PPU repeats this routine over and over and over all the time.
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id=&#34;visible-scanlines&#34;&gt;Visible scanlines&lt;/h3&gt;
+&lt;p&gt;As inferred from their name, these are scanlines which are seen on the NES screen.
+There are some scanlines which are not visible - meaning a color is not getting outputted.
+Why are there such scanlines? Well for a couple of reasons. When we go over these scanlines, I will explain why.&lt;/p&gt;
+&lt;h3 id=&#34;vertical-blank-vblank-scanlines&#34;&gt;Vertical blank (vblank) scanlines&lt;/h3&gt;
+&lt;p&gt;These scanlines are not visible - meaning during these scanlines nothing is getting rendered on the screen.
+The PPU does essentially nothing. (It only sets up some flags, we will see what flags and when later on)
+During these scanlines the CPU can write data to VRAM to setup new data for the PPU to render next frame.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; This also explain why nothing is displayed during these scanlines - the whole point of having these scanlines is to have a time frame where the PPU isn&amp;rsquo;t rendering or reading data so the CPU can safely update the data for the next frame.
+And if we didnt have these scanlines, the PPU would read while the CPU is still updating data, and so the PPU would read garbage data from VRAM and the internal registers, which would result in a glitchy unwanted picture.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;The CPU &lt;strong&gt;must&lt;/strong&gt; access VRAM and internal registers to set stuff for the next frame. (otherwise we would just get a single constant picture to render).&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; Although very rare, very few games do access VRAM outside of vblank in a controlled way. They do this to create some special effects on screen.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3 id=&#34;pre-render-scanline&#34;&gt;Pre-render scanline&lt;/h3&gt;
+&lt;p&gt;These scanlines are also not visible. Other than that, they are very similar to the visible scanlines. (with some other small changes)
+As can be inferred from it&amp;rsquo;s name, it&amp;rsquo;s purpose is to prepare the data for the visible scanlines to render.&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;NOTE:
+This also explain why nothing is displayed during this scanline - after the CPU updated the data, the PPU needs to make some internal fetches for the next scanline - the first visible scanline.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;I know this isn&amp;rsquo;t really tangible yet and hard to understand, but things will hopefully make sense later on. Just keep what I said in mind, and if you need a reminder, you can always jump back and read this section again.&lt;/p&gt;
+&lt;h3 id=&#34;in-conclusion&#34;&gt;In conclusion&lt;/h3&gt;
+&lt;p&gt;PPU starts at scanline 261, goes over 340 cycles (pixels).
+Then switches to scanline 0, goes over 340 cycles (pixels),
+Then switches to scanline 1, goes over 340 cycles (pixels),
+switches over to scanline 2, etc etc..&lt;/p&gt;
+&lt;p&gt;It does this forever (well, mostly).&lt;/p&gt;
+&lt;p&gt;Hope you have some simple mental image on how rendering works at the surface level.
+I highly recommend checking out &lt;a href=&#34;https://www.nesdev.org/wiki/File:Ppu.svg&#34;&gt;this diagram&lt;/a&gt; at the NESdev wiki(Don&amp;rsquo;t get overwhelmed from the amount of information, soon enough everything will be clear. Keep this mental image of scanline and cycles for later. In the PPU, everything is measured in terms of frames, scanlines and cycles).&lt;/p&gt;
+&lt;h2 id=&#34;part-2---nametables-pattern-tables-attribute-tables-the-palette-table-and-the-palette&#34;&gt;Part 2 - Nametables, Pattern tables, Attribute tables, the Palette table and the palette&lt;/h2&gt;
+&lt;p&gt;Okay, this section will be a bit longer.
+So last section we talked about how the PPU renders each pixel at a basic level. As we all know, the NES can display a pretty nice range of colors. So how does the PPU know which color it needs to render for each pixel?&lt;/p&gt;
+&lt;p&gt;Glad you asked!&lt;/p&gt;
+&lt;p&gt;The NES&amp;rsquo;s way of storing this data is a bit complicated, but after a couple of reads it&amp;rsquo;s easier to understand :)&lt;/p&gt;
+&lt;h3 id=&#34;pattern-tables&#34;&gt;Pattern tables&lt;/h3&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;p&gt;In short, each entry in pattern tables define the &lt;em&gt;shape&lt;/em&gt; of each tile in the screen.
+What do I mean by that?&lt;/p&gt;
+&lt;p&gt;Well, The NES has 2 pattern tables, both of which are stored on the cartridge ROM. (sometimes also referred to as CHR ROM)&lt;/p&gt;
+&lt;p&gt;The 2 pattern tables reside in $0000-$0fff and $1000-$1fff respectively in the PPU address range.
+From that we can infer the size of each pattern table is &lt;code&gt;$1000 = 4096 bytes&lt;/code&gt;
+The size of each entry is 16 bytes.&lt;/p&gt;
+&lt;p&gt;How does it represent the tile though?
+Here&amp;rsquo;s a great diagram I &lt;del&gt;stole&lt;/del&gt; borrowed from the NESdev wiki. Down below I will explain what it shows.
+This diagram shows how the data for a tile displaying &amp;lsquo;½&amp;rsquo; is saved:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-psuedo&#34; data-lang=&#34;psuedo&#34;&gt;(a . represents a 0)
+
+Bit Planes            Pixel Pattern
+$0xx0=$41  01000001
+$0xx1=$C2  11000010
+$0xx2=$44  01000100
+$0xx3=$48  01001000
+$0xx4=$10  00010000
+$0xx5=$20  00100000         .1.....3
+$0xx6=$40  01000000         11....3.
+$0xx7=$80  10000000  =====  .1...3..
+                            .1..3...
+$0xx8=$01  00000001  =====  ...3.22.
+$0xx9=$02  00000010         ..3....2
+$0xxA=$04  00000100         .3....2.
+$0xxB=$08  00001000         3....222
+$0xxC=$16  00010110
+$0xxD=$21  00100001
+$0xxE=$42  01000010
+$0xxF=$87  10000111
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Now for the explanation:
+We take the first 8 bytes to represent the MSB, and the other 8 bytes to represent the LSB.
+We put the bytes &amp;ldquo;on top of eachother&amp;rdquo; (byte 0 on byte 8, byte 1 on byte 9, &amp;hellip; byte 7 goes on top of byte 16), and thus we get a matrix of 8x8, with a 2 bit value for each cell.&lt;/p&gt;
+&lt;p&gt;Let&amp;rsquo;s take byte 0 and byte 8 for example:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-psuedo&#34; data-lang=&#34;psuedo&#34;&gt;byte 0 = 01000001
+byte 9 = 00000001
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;When we place byte 9 on 0 we get:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-psuedo&#34; data-lang=&#34;psuedo&#34;&gt;(00)(01)(00)(00)(00)(00)(00)(11)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;=&amp;gt; we get a 2 bit value!
+2 bit value means: &lt;code&gt;2^2 = 4&lt;/code&gt; so 4 possible values: &lt;code&gt;0&lt;/code&gt;,&lt;code&gt;1&lt;/code&gt;,&lt;code&gt;2&lt;/code&gt; and &lt;code&gt;3&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;And remember, a tile is 8x8 pixels, so that means we get a 2 bit value for each pixel in the tile!
+This value is later used to select the color for that specific pixel. (But its not the only one! the NES uses 4 bits to select the final color, so we get the 2 bits from some where else - we will see later from where)&lt;/p&gt;
+&lt;h3 id=&#34;nametables&#34;&gt;Nametables&lt;/h3&gt;
+&lt;p&gt;A question that begs to be asked is: &amp;ldquo;Okay, so we now know what each 8x8 pixel look like. But how do we order them together? How do we know where each tile is located on the screen?&amp;rdquo;&lt;/p&gt;
+&lt;p&gt;The answer is nametables!&lt;/p&gt;
+&lt;p&gt;If each pattern table entry defines the &lt;em&gt;structure&lt;/em&gt; of a &lt;em&gt;tile&lt;/em&gt;, then the nametables define the &lt;em&gt;structure&lt;/em&gt; of the &lt;em&gt;screen&lt;/em&gt;.
+What do I mean by that?
+Well, remember how I said each entry in the pattern table is used to represent a tile?&lt;/p&gt;
+&lt;p&gt;So a nametable is a table of dimensions 32x30, where each each entry size is 1 byte. (NOTE: just sure this is clear: when I say 32x30, 8x8, etc this is a &lt;strong&gt;logical&lt;/strong&gt; way we look at the memory. In reality all computer memory is just a contiguous space of bits.)
+That means we have &lt;code&gt;1x32x30 = 920 bytes&lt;/code&gt; in each nametable.
+And the PPU has a memory map of 4 nametables, but in reality only 2 of them are real. The others are mirrors. (possibly 4 with some advanced mappers, but this is outside todays discussion)
+Each nametable entry represents a tile. How? Well, that 1 byte entry is used to index into the pattern table. So the pattern table essentially associates each tile on the screen with a specific sprite entry in the pattern table. (more on how exactly this 1 byte is used to index into the pattern table, you can find &lt;a href=&#34;https://www.nesdev.org/wiki/PPU_nametables&#34;&gt;on this page&lt;/a&gt; of the NESdev wiki)&lt;/p&gt;
+&lt;p&gt;Both nametables reside in VRAM. This is because unlike the pattern table (which are constant), the nametables are dynamic. The CPU read and write from them (and other VRAM memory) using a set of &amp;ldquo;ports&amp;rdquo; (which we will look at later). That way the CPU can change whats on the screen for each frame.&lt;/p&gt;
+&lt;p&gt;That also explains why the resolution is of the NES screen is 256x240. The nametables are a able of 32x30 entries - each entry represents a tile, so we get &lt;code&gt;32x8x30x8 = 256x240&lt;/code&gt; pixels in total!&lt;/p&gt;
+&lt;h3 id=&#34;attribute-table&#34;&gt;Attribute table&lt;/h3&gt;
+&lt;p&gt;Okay, so now we have the structure of each tile, and the position of each tile on the screen, so theoretically we have all the information required to draw a black-white image. But the NES has a pretty nice range of colors. How do this fit into frame with all we explained before? (pun intended :)&lt;/p&gt;
+&lt;p&gt;The answer is attribute table!
+This is a section that comes right after each nametable, and goes hand-in-hand with the nametable - so much so that often times they are referred to as one unit (which may cause some confusion)
+Remember we need another 2 bits to get the final 4 bit color for each pixel? The attribute table is the next component in the process of getting that value.
+Each attribute table size is 64 bytes total. Each byte is mapped to a &lt;em&gt;quadrant&lt;/em&gt; (which is 2x2 = 4 &lt;em&gt;blocks&lt;/em&gt;) on the screen.
+That byte is divided into 4 parts, giving us &lt;code&gt;8/4 = 2 bits&lt;/code&gt; for each &lt;em&gt;block&lt;/em&gt; (which is 2x2 = 4 &lt;em&gt;tiles&lt;/em&gt;).
+So essentially each group of 4 tiles share the 2 bits.
+So now we have 4 bits total for each tile! 2 bits from the pattern table, and 2 bits from the &lt;em&gt;block&lt;/em&gt; group it belongs to.&lt;/p&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h3 id=&#34;the-palette-and-the-palette-table&#34;&gt;The Palette and the Palette table&lt;/h3&gt;
+&lt;p&gt;Now, how do we get from a sequence of 4 bits to a full color?
+That 4 bit value we created for each tile is used as an index into &lt;em&gt;yet another&lt;/em&gt; memory section called the palette table (or palette RAM - they mean the same thing).
+The palette table is pretty straight forward - it contains indexes into the NES palette, which is where the actual final colors to be displayed are stored.
+The palette table has a size of $20 (32) bytes (Its memory map looks bigger: $3f00 - $3fff, but only the first $1f are real. The rest are mirrors)&lt;/p&gt;
+&lt;p&gt;That palette table is divided into 2 parts, first 16 bytes, and last 16 bytes. The first 16 bytes are used by the background sprites, and the other 16 for the foreground sprites.
+Right now we are only talking about background rendering, so we will ignore the last 16 bytes.&lt;/p&gt;
+&lt;p&gt;The pattern table is also divided into 4 sub sections, called &lt;em&gt;palette group&lt;/em&gt;.
+We have 16 bytes for the background, so we have &lt;code&gt;16/4 = 4&lt;/code&gt; colors groups.
+The 2 bits we got from the attribute table is used to get the color group, and the 2 bits from pattern table is used to index a specific color from that group. 2 bits means we have &lt;code&gt;2^2 = 4&lt;/code&gt; options, so 4 options for the color group, 4 options for the specific color.
+(in reality we have 3 colors per group, since the first color of each group are the same, but that is for later. You can read more about this &lt;a href=&#34;https://www.nesdev.org/wiki/PPU_palettes&#34;&gt;here&lt;/a&gt;)&lt;/p&gt;
+&lt;p&gt;Okay. So now we have a byte. What do we do with it?
+We use that byte to index into the palette.
+The palette has 64 colors, and each color is 24 bits (3 bytes) in an RGB format (byte for red, byte for green and a byte for blue) (I suppose for CRT that is a bit different, but that&amp;rsquo;s out of scope for today)&lt;/p&gt;
+&lt;p&gt;Thats it!&lt;/p&gt;
+&lt;p&gt;It takes some time to wrap the head over all of this, so don&amp;rsquo;t be frustrated if it takes some time.
+I highly recommend you go read &lt;a href=&#34;https://austinmorlan.com/posts/nes_rendering_overview/&#34;&gt;this page&lt;/a&gt; written by Austin Morlan. His explanation include great images that help picture this mechanism.&lt;/p&gt;
+&lt;h2 id=&#34;part-3---rendering-mechanism&#34;&gt;Part 3 - Rendering mechanism&lt;/h2&gt;
+&lt;p&gt;Here we will dive more in detail on how rendering works.
+Remember from before, how the PPU goes over each scanline, and each cycle renders a pixel?
+So the position the PPU is currently at on the screen during rendering could be described using coarse x scroll , coarse y scroll, fine y scoll, fine x scroll, and a nametable.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;nametable&lt;/strong&gt; - the nametable we want to render from. Remember there are 4 namestables we can address (which in reality only 2 of them are actually present on the NES, the other 2 are mirrors or could be added using mappers - again, we will explain later) so we need &lt;code&gt;4 = 2^2 =&amp;gt; 2 bits&lt;/code&gt; to index a nametable.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;coarse x&lt;/strong&gt; - the x coordinate of a tile inside the nametable. Each nametable is 32x30, so we need &lt;code&gt;32=2^5 =&amp;gt; 5 bits&lt;/code&gt; to access a specific tiles x coordinate&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;coarse y&lt;/strong&gt; - the y coordinate of a tile inside the nametable. Each nametable is 32x30, so we need &lt;code&gt;32=2^5 =&amp;gt; 5 bits&lt;/code&gt; to access a specific tiles y coordinate (NOTE: for the y component, we need to be able to reach values between 0 and 30 so we will need to use 5 bits for the y as well. (less than that and we will get 16, 8, etc. which is less than what we need))&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;fine x&lt;/strong&gt; - the x coordinate of a pixel inside a tile. Each tile is 8x8 pixels, so we need &lt;code&gt;8 = 2^3 =&amp;gt; 3 bits&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;fine y&lt;/strong&gt; - the y coordinate of a pixel inside a tile. Each tile is 8x8 pixels, so we need &lt;code&gt;8 = 2^3 =&amp;gt; 3 bits&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;The PPU has 2 internal registers used to keep track of which position the PPU is currently at: &lt;code&gt;v&lt;/code&gt; and &lt;code&gt;t&lt;/code&gt;.
+&lt;code&gt;v&lt;/code&gt; is the actual register the NES uses, &lt;code&gt;t&lt;/code&gt; is only used to change &lt;code&gt;v&lt;/code&gt;`s when needed. (We will soon see how and why)&lt;/p&gt;
+&lt;p&gt;We just explained why we need 15 bits to index a certain pixel, and so both &lt;code&gt;v&lt;/code&gt; and &lt;code&gt;t&lt;/code&gt; are 15 bits.
+Here is a diagram taken from the NESdev wiki to explain how their bits are divided:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-psuedo&#34; data-lang=&#34;psuedo&#34;&gt;yyy NN YYYYY XXXXX
+||| || ||||| +++++-- coarse X scroll
+||| || +++++-------- coarse Y scroll
+||| ++-------------- nametable select
++++----------------- fine Y scroll
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;And so if you recall from before how the PPU rendering mechanism works, we can infer we increment coarse x every 8 cycles, and increment fine y every scanline, and when fine y overflows (ie we reached 8 pixels) - we increment coarse y.&lt;/p&gt;
+&lt;p&gt;But where is fine x you ask?
+Well fine x is used a bit differently. It is set once, and is used to select a certain pixel from the shift regs. It&amp;rsquo;s value is stored at a register called &lt;code&gt;x&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;What are the shift regs though?
+They are a set of registers to which the PPU loads the data to be rendered, and every cycle it shifts them by one, getting the bits it needs.
+There are 4 shift regs:&lt;/p&gt;
+&lt;p&gt;pattern table shift lsb
+pattern table shift msb
+attribute table shift lsb
+attribute table shift msb&lt;/p&gt;
+&lt;p&gt;each cycle you extract one bit from each (either 00000001 or 10000000, depending on how you choose to shift them) and then are shifted by one.&lt;/p&gt;
+&lt;p&gt;so using the bits from &lt;code&gt;pattern table shift lsb&lt;/code&gt; and pattern &lt;code&gt;table shift msb&lt;/code&gt; a 2 bit value formed and used as the pattern table data (the same value we discussed earlier) and similarly using &lt;code&gt;attribute table shift lsb&lt;/code&gt; and &lt;code&gt;attribute table shift msb&lt;/code&gt; a 2 bit value is formed, and used to index the attribute table, which are used to get the other 2 bits need.&lt;/p&gt;
+&lt;p&gt;So we have 4 bits now, which are used to index into the pattern table, from which you get the final color!&lt;/p&gt;
+&lt;p&gt;How do the shift registers contain that data? How are they filled?
+Each cycle of the visible and prerender scanline the PPU renders a pixel, and does one of the following:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;fetch a tile index from the nametables&lt;/li&gt;
+&lt;li&gt;fetch an attribute table byte.&lt;/li&gt;
+&lt;li&gt;fetch a pattern table msb byte using the tile index from fetch 1&lt;/li&gt;
+&lt;li&gt;fetch a pattern table lsb byte using the tile index from fetch 1&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;He places each of these fetches in designated latches, which every 8 cycles are used to feed the shift register.&lt;/p&gt;
+&lt;h2 id=&#34;part-4---ppu-registers&#34;&gt;Part 4 - PPU registers&lt;/h2&gt;
+&lt;p&gt;How does the PPU communicate with the CPU?
+Well, the PPU has MMIO (memory mapped io) ports which it exposes to the CPU, which the CPU and the PPU can read and write from. That way they can communicate with eachother.
+That means that the CPU just performs something like:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-assembly&#34; data-lang=&#34;assembly&#34;&gt;lda #$somedata
+sta someport
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Now, these ports are mirrored by 8. That means that for example a read/write to &lt;code&gt;$2000&lt;/code&gt; is the same as a read/write to &lt;code&gt;$2008&lt;/code&gt;, and the same as a read/write to &lt;code&gt;$2016&lt;/code&gt;, etc&lt;/p&gt;
+&lt;p&gt;(NOTE: The title is a little misleading, as they are not &amp;ldquo;registers&amp;rdquo;. They are as I said ports - meaning that writes to a certain port doesnt necessarily just copies the data into a register.)&lt;/p&gt;
+&lt;h2 id=&#34;ppu-control-2000&#34;&gt;PPU CONTROL ($2000)&lt;/h2&gt;
+&lt;p&gt;This port is mapped to an internal register.
+This register holds data that affects how the PPU is rendering stuff.
+here&amp;rsquo;s a diagram taken from the NESdev wiki:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-psuedo&#34; data-lang=&#34;psuedo&#34;&gt;7  bit  0
+---- ----
+VPHB SINN
+|||| ||||
+|||| ||++- Base nametable address
+|||| ||    (0 = $2000; 1 = $2400; 2 = $2800; 3 = $2C00)
+|||| |+--- VRAM address increment per CPU read/write of PPUDATA
+|||| |     (0: add 1, going across; 1: add 32, going down)
+|||| +---- Sprite pattern table address for 8x8 sprites
+||||       (0: $0000; 1: $1000; ignored in 8x16 mode)
+|||+------ Background pattern table address (0: $0000; 1: $1000)
+||+------- Sprite size (0: 8x8 pixels; 1: 8x16 pixels – see PPU OAM#Byte 1)
+|+-------- PPU master/slave select
+|          (0: read backdrop from EXT pins; 1: output color on EXT pins)
++--------- Generate an NMI at the start of the
+           vertical blanking interval (0: off; 1: on)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Bits &lt;code&gt;0,1&lt;/code&gt; - the &amp;ldquo;Base nametable address&amp;rdquo; specify (as their title implies) the nametable from which we start rendering. They set the 2 bits on the &lt;code&gt;t&lt;/code&gt; register (which also then sets &lt;code&gt;v&lt;/code&gt;, but we&amp;rsquo;ll get to that later)
+Most of these other flags require further knowledge so we will not dwell too much on them, we will see the need for them later on. For now, just know this register exists. We will see how it is used, and how to read/write from/to it later&lt;/p&gt;
+&lt;h2 id=&#34;ppu-mask-2001&#34;&gt;PPU MASK ($2001)&lt;/h2&gt;
+&lt;p&gt;This port is mapped to an internal register.
+This register &lt;em&gt;also&lt;/em&gt; holds data that affects how the PPU is rendering stuff.
+Here&amp;rsquo;s a diagram taken from the NESdev wiki:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-psuedo&#34; data-lang=&#34;psuedo&#34;&gt;7  bit  0
+---- ----
+BGRs bMmG
+|||| ||||
+|||| |||+- Greyscale (0: normal color, 1: produce a greyscale display)
+|||| ||+-- 1: Show background in leftmost 8 pixels of screen, 0: Hide
+|||| |+--- 1: Show sprites in leftmost 8 pixels of screen, 0: Hide
+|||| +---- 1: Show background
+|||+------ 1: Show sprites
+||+------- Emphasize red (green on PAL/Dendy)
+|+-------- Emphasize green (red on PAL/Dendy)
++--------- Emphasize blue
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;em&gt;Show background&lt;/em&gt; and &lt;em&gt;Show sprites&lt;/em&gt; - each specify to the PPU whether it should render background data and whether it should render foreground data.&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;Show background in leftmost 8 pixels of screen&lt;/em&gt; and &lt;em&gt;Show sprites in leftmost 8 pixels of screen&lt;/em&gt; - Same as the former 2, each specify to the PPU whether it should render background data and foreground data on pixels &lt;code&gt;0,1,2,3,4,5,6,7&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;Similar to PPUCTRL, ignore the rest of the flags until later.&lt;/p&gt;
+&lt;h2 id=&#34;ppu-status-2002&#34;&gt;PPU STATUS ($2002)&lt;/h2&gt;
+&lt;p&gt;This port is mapped to a register.
+This register is used to display information regarding the status of the PPU.
+Here&amp;rsquo;s a diagram taken from the NESdev wiki:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-psuedo&#34; data-lang=&#34;psuedo&#34;&gt;7  bit  0
+---- ----
+VSO. ....
+|||| ||||
+|||+-++++- PPU open bus. Returns stale PPU bus contents.
+||+------- Sprite overflow. The intent was for this flag to be set
+||         whenever more than eight sprites appear on a scanline, but a
+||         hardware bug causes the actual behavior to be more complicated
+||         and generate false positives as well as false negatives; see
+||         PPU sprite evaluation. This flag is set during sprite
+||         evaluation and cleared at dot 1 (the second dot) of the
+||         pre-render line.
+|+-------- Sprite 0 Hit.  Set when a nonzero pixel of sprite 0 overlaps
+|          a nonzero background pixel; cleared at dot 1 of the pre-render
+|          line.  Used for raster timing.
++--------- Vertical blank has started (0: not in vblank; 1: in vblank).
+           Set at dot 1 of line 241 (the line *after* the post-render
+           line); cleared after reading $2002 and at dot 1 of the
+           pre-render line.
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Same as the previous regs, most of these flags require further knowledge about the PPU, but there is one flag that seems familiar - bit 7 - which tells the CPU if the PPU is in the vblank scanlines.&lt;/p&gt;
+&lt;h2 id=&#34;oam-data&#34;&gt;OAM DATA&lt;/h2&gt;
+&lt;p&gt;used for PPU foreground rendering, discussed at the &lt;a href=&#34;https://roeegg2.github.io/ppu_fg&#34;&gt;foreground rendering writeup&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;oam-addr&#34;&gt;OAM ADDR&lt;/h2&gt;
+&lt;p&gt;used for PPU foreground rendering, discussed at the &lt;a href=&#34;https://roeegg2.github.io/ppu_fg&#34;&gt;foreground rendering writeup&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;ppu-scroll-2005--ppu-addr-2006--ppu-data2007&#34;&gt;PPU SCROLL ($2005) &amp;amp; PPU ADDR ($2006) &amp;amp; PPU DATA($2007)&lt;/h2&gt;
+&lt;p&gt;These 3 ports go hand in hand with each other.
+In order to understand their use, let&amp;rsquo;s dive a bit deeper onto the rendering mechanism:&lt;/p&gt;
+&lt;p&gt;Have you ever wondered, how do the nametables change?
+I mean, we said each entry in the nametables represents a tile, which is associated with a pattern table entry - which is what the game wants to show on each tile.
+So that means the nametables should be set by the programmer (since the programmer chooses what he wants to display on screen)
+But the programmer just writes code - which gets run on the CPU.
+And the CPU doesn&amp;rsquo;t have the nametables on its memory map.
+So how does he set their value?&lt;/p&gt;
+&lt;p&gt;The answer is PPU ADDR and PPU DATA. To put it simply, the programmer loads up an address to PPU ADDR to access on the &lt;strong&gt;PPU&amp;rsquo;s&lt;/strong&gt; address space, then places the data he wants to write to that address on PPU DATA, and then &lt;del&gt;(edit here) X&lt;/del&gt; writes the data to the specified address.&lt;/p&gt;
+&lt;p&gt;So the game code will look something like this:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-assembly&#34; data-lang=&#34;assembly&#34;&gt;; load A with the most significant byte of the address
+lda #$2A
+; write contents of A to the PPUADDR port
+sta $2006
+; load A with the least significant byte of the address
+lda #$01
+; write contents of A to the PPUADDR port
+sta $2006
+
+; now we finished writing the address.
+; load A with the data to be written:
+lda #$30
+; store the contents of A to PPUDATA port, so they are written to the address in the PPU&amp;#39;s memory space we specified before
+sta $2005
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Now, remember the registers &lt;code&gt;v, t, x&lt;/code&gt;? I&amp;rsquo;ll now explain more about them, and about their friend - &lt;code&gt;w&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;x&lt;/code&gt; - not much more to explain about this one, it just stored the fine x value.
+&lt;code&gt;w&lt;/code&gt; - a 1 bit register used to track write sequences. I&amp;rsquo;ll explain what I mean down below:&lt;/p&gt;
+&lt;p&gt;Remember when I said &lt;code&gt;v&lt;/code&gt; keeps track of the PPU&amp;rsquo;s current position, and &lt;code&gt;t&lt;/code&gt; is just used to fill &lt;code&gt;v&lt;/code&gt; with some new data from time to time? Well they have another use.
+The address written to &lt;code&gt;PPUADDR&lt;/code&gt;/&lt;code&gt;PPUSCROLL&lt;/code&gt; is placed in &lt;code&gt;t&lt;/code&gt;. Each write to these ports, swaps the value of &lt;code&gt;w&lt;/code&gt; (from 1 to 0 or from 0 to 1). As I said earlier, it is used to keep track of a write sequence. Because an address is 16 bits, and because we can only write 8 bits at a time, by using &lt;code&gt;w&lt;/code&gt; we can track if we are on the first write (when &lt;code&gt;w = 0&lt;/code&gt;. This is when we set the most significant 8 bits) or the second write (when &lt;code&gt;w = 1&lt;/code&gt;. This is when we set the least significant 8 bits).
+On the second write, we also transfer the data from &lt;code&gt;t&lt;/code&gt; to &lt;code&gt;v&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;If you want to toggle between the first and second write, you can perform a &lt;strong&gt;read&lt;/strong&gt; on &lt;code&gt;PPUSTATUS&lt;/code&gt;, which will set &lt;code&gt;w&lt;/code&gt; to &lt;code&gt;0&lt;/code&gt;. It&amp;rsquo;s good practice to do that any time you want to write a new address using &lt;code&gt;PPUADDR&lt;/code&gt;/&lt;code&gt;PPUSCROLL&lt;/code&gt;, to make sure &lt;code&gt;w&lt;/code&gt; is indeed 0.&lt;/p&gt;
+&lt;p&gt;Now you probably wonder: &amp;ldquo;What is the difference between &lt;code&gt;PPUADDR&lt;/code&gt; and &lt;code&gt;PPUSCROLL&lt;/code&gt;&amp;rdquo;?
+Remember I said &lt;code&gt;t&lt;/code&gt; and &lt;code&gt;v&lt;/code&gt; have 2 uses? (using as an address to access VRAM, and as a counter the PPU uses to keep track of what pixel it renders right now). That is exactly the difference between the 2.&lt;/p&gt;
+&lt;p&gt;&lt;code&gt;PPUSCROLL&lt;/code&gt; - is meant to be used to set &lt;code&gt;t&lt;/code&gt; (which sets &lt;code&gt;v&lt;/code&gt; on the second write) when the CPU wants to specify to the PPU what exact pixel it should start rendering from. (in that case, &lt;code&gt;v&lt;/code&gt; and &lt;code&gt;t&lt;/code&gt; are viewed from the first perspective I &lt;a href=&#34;#part-3---rendering-mechanism&#34;&gt;explained before&lt;/a&gt;)
+This is a reminder on how &lt;code&gt;t&lt;/code&gt; and &lt;code&gt;v&lt;/code&gt; look from a &lt;strong&gt;scrolling&lt;/strong&gt; perspective:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;(15 bits total)
+
+edc ba 98765 43210
+yyy NN YYYYY XXXXX
+||| || ||||| +++++-- coarse X scroll
+||| || +++++-------- coarse Y scroll
+||| ++-------------- nametable select
++++----------------- fine Y scroll
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;&lt;code&gt;PPUADDR&lt;/code&gt; - is meant to be used to set &lt;code&gt;t&lt;/code&gt; (which again, also sets &lt;code&gt;v&lt;/code&gt; on the second write) when the CPU wants to write to VRAM. (which in this case &lt;code&gt;t&lt;/code&gt; and &lt;code&gt;v&lt;/code&gt; are viewed as addresses)
+This is how &lt;code&gt;t&lt;/code&gt; and &lt;code&gt;v&lt;/code&gt; look from an &lt;strong&gt;address&lt;/strong&gt; perspective:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;(14 bits total)
+
+dcba9876543210
+
+(No special division of bits like in scrolling view, just bits used as an address)
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;And each port sets &lt;code&gt;t&lt;/code&gt; and &lt;code&gt;v&lt;/code&gt; differently. &lt;code&gt;PPUADDR&lt;/code&gt; sets &lt;code&gt;t&lt;/code&gt; and &lt;code&gt;v&lt;/code&gt; the way I explained at the start of the section, and &lt;code&gt;PPUSCROLL&lt;/code&gt; sets them in the following manner:&lt;/p&gt;
+&lt;p&gt;first write sets the &lt;code&gt;coarse x&lt;/code&gt; component of &lt;code&gt;t&lt;/code&gt;, and the &lt;code&gt;x&lt;/code&gt; register (which is as I explained before &amp;ldquo;&lt;code&gt;fine x&lt;/code&gt;&amp;rdquo;).
+second write sets the &lt;code&gt;coarse y&lt;/code&gt; and &lt;code&gt;fine y&lt;/code&gt; component of &lt;code&gt;t&lt;/code&gt;.
+(As I said before, the &lt;code&gt;base nametable&lt;/code&gt; is set using a write to &lt;code&gt;PPUCTRL&lt;/code&gt;)&lt;/p&gt;
+&lt;p&gt;Here is a simple example for demonstration:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;; 01111 will be placed in coarse x component of t, 101 will be placed in x register
+lda #$7D (%01111101)
+; writing the data to PPUSCROLL
+sta $2005
+
+; 010 will be placed in fine y, and 11110 will be placed in coarse y
+lda #$5E (%01011110)
+; writing the data to PPUSCROLL
+sta $2005
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;That is probably one of most complicated aspects of the PPU, and a crucial one so make sure you
+understand it well.&lt;/p&gt;
+- http://localhost:42897/series/nes-internals/2024-04-06-ppu-background/ - </description>
+        </item>
+    
+    
+    
+        <item>
+        <title>&#34;NES Internals chapter 1&#34; - The CPU</title>
+        <link>http://localhost:42897/series/nes-internals/2024-03-14-cpu/</link>
+        <pubDate>Thu, 14 Mar 2024 15:13:25 +0300</pubDate>
+        
+        <guid>http://localhost:42897/series/nes-internals/2024-03-14-cpu/</guid>
+        <description>My New Hugo Site http://localhost:42897/series/nes-internals/2024-03-14-cpu/ -&lt;h2 id=&#34;introduction&#34;&gt;Introduction&lt;/h2&gt;
+&lt;p&gt;The NES has a slightly modified version of the MOS 6502 CPU.
+This CPU was quite popular back in the day so there is plenty of detailed documentation about it online.&lt;/p&gt;
+&lt;h2 id=&#34;terminology&#34;&gt;Terminology&lt;/h2&gt;
+&lt;p&gt;We won&amp;rsquo;t be using any fancy emulation/NES terminology here, just basic computer stuff.
+I will explain some terms very simply, if you want a more in depth explanation you can look these things up online.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Registers&lt;/strong&gt; - small and fast areas of storage the CPU can fetch data from and write data to.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;RAM&lt;/strong&gt; (Random Access Memory) - a type of memory the CPU can read data to and write data from.
+It&amp;rsquo;s used mostly to store the stack and global variables.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; In addition to the stack, global variables and runtime data, modern computers and consoles usually
+copy code of the game from the harddisk to memory. The NES doesn&amp;rsquo;t do that - it reads each instruction from the cartridge.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;MMIO&lt;/strong&gt; (Memory mapped I/O) - Roughly speaking, this is mapping a certain memory address to a device, so by reading/writing
+that address we can transfer data from/to that device. Look it up online for a more detailed explanation.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;ISR&lt;/strong&gt; (short for interrupt service routine) - the function called to handle an interrupt. Different interrupts have different ISRs,
+and each game defines its own ISR.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Interrupt Vector&lt;/strong&gt; - A memory address which contains the address of the ISR of an interrupt.  When an interrupt occurs, the CPU reads the
+address from the interrupt vector to get the address of the ISR, and then jumps to that address (Indirect addressing)&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;part-1---what-does-a-cpu-do&#34;&gt;Part 1 - What does a CPU do?&lt;/h2&gt;
+&lt;h3 id=&#34;the-fetch-decode-execute-cycle&#34;&gt;The fetch-decode-execute cycle:&lt;/h3&gt;
+&lt;p&gt;At the end of the day, CPU is just a component which receives some data, does some calculations, and outputs some data.&lt;/p&gt;
+&lt;p&gt;Roughly speaking, each cycle the CPU does one of these operations:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Fetch&lt;/strong&gt; - fetch an instruction&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Decode&lt;/strong&gt; - figure out what that instruction does&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Execute&lt;/strong&gt; - do that instruction&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; These stages could be further divided into more stages (a common division is into 7), but for the NES&amp;rsquo;s emulation purposes,
+we can simplify it into 3.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3 id=&#34;how-should-i-read-this-sir&#34;&gt;How should I read this, sir?&lt;/h3&gt;
+&lt;p&gt;The binary code the CPU needs to execute follows the following format:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-psuedo&#34; data-lang=&#34;psuedo&#34;&gt;opcode operand1 operand2
+opcode operand1 operand2
+opcode operand1 operand2
+
+... etc
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;An &lt;strong&gt;Opcode&lt;/strong&gt; is a number unique to each operation the CPU performs, so the CPU knows what it should should do,
+and how to get the data used by that instruction. Even similar instructions have different opcodes, because they uses different
+addressing modes. (for example, the opcode for &lt;code&gt;AND X&lt;/code&gt; will be different than)&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Operands&lt;/strong&gt;, are data that the operation needs as parameters. Somewhat similar to function arguments in high level languages
+such as C, Java, Python, etc. Each operation&amp;rsquo;s operand number range from 0
+(the minimum amount) to 2 (the maximum amount)&lt;/p&gt;
+&lt;p&gt;An a &lt;strong&gt;addressing mode&lt;/strong&gt;, dictates a certain way the CPU should &amp;ldquo;treat&amp;rdquo; an operand as. (IE treat it as a register, treat it as an immediate
+value, treat it as an memory address, or even as a memory address which stores a value the CPU wants to retrieve)&lt;/p&gt;
+&lt;p&gt;For an example, let&amp;rsquo;s look the following code snippet:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-assembly&#34; data-lang=&#34;assembly&#34;&gt;LDA #$11
+STA $2005
+LDA $11
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;All that code does is:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;load the value &lt;code&gt;$11&lt;/code&gt; into the accumulator&lt;/li&gt;
+&lt;li&gt;store the value in the accumulator at address &lt;code&gt;$200&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;load the value stored at address &lt;code&gt;$11&lt;/code&gt; into the accumulator&lt;/li&gt;
+&lt;/ol&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;#$&lt;/code&gt; marking means &amp;ldquo;interpret this as a regular hex-form number&amp;rdquo;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;$&lt;/code&gt; marking means &amp;ldquo;interpret this as a hex-form address number&amp;rdquo;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;#&lt;/code&gt; marking means &amp;ldquo;interpret this as a regular decimal-form number&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;The assembled code will be:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-psuedo&#34; data-lang=&#34;psuedo&#34;&gt;A9 11 8D 05 20 A5 11
+&lt;/code&gt;&lt;/pre&gt;&lt;ul&gt;
+&lt;li&gt;the &lt;code&gt;A9&lt;/code&gt; is the &lt;strong&gt;opcode&lt;/strong&gt; for the &lt;code&gt;LDA (load accumulator with some value)&lt;/code&gt; instruction, using the &lt;em&gt;immediate&lt;/em&gt; addressing mode.&lt;/li&gt;
+&lt;li&gt;the &lt;code&gt;11&lt;/code&gt; is first &lt;code&gt;LDA&lt;/code&gt;s first &lt;strong&gt;operand&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;the &lt;code&gt;8D&lt;/code&gt; is the &lt;strong&gt;opcode&lt;/strong&gt; for the &lt;code&gt;STA&lt;/code&gt; instruction, using &lt;em&gt;absolute&lt;/em&gt; addressing modes, and both&lt;/li&gt;
+&lt;li&gt;the &lt;code&gt;05&lt;/code&gt; is first &lt;code&gt;STA&lt;/code&gt;s first &lt;strong&gt;operand&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;the &lt;code&gt;20&lt;/code&gt; is first &lt;code&gt;STA&lt;/code&gt;s second &lt;strong&gt;operand&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;the &lt;code&gt;A5&lt;/code&gt; is the &lt;strong&gt;opcode&lt;/strong&gt; for the second &lt;code&gt;LDA&lt;/code&gt; instruction, using &lt;em&gt;zero page&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;the &lt;code&gt;11&lt;/code&gt; is the second &lt;code&gt;LDA&lt;/code&gt;s first &lt;strong&gt;operand&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; The reason &lt;code&gt;2005&lt;/code&gt; is stored reversed, as &lt;code&gt;05 20&lt;/code&gt; is because the 6502 is &lt;em&gt;little endian&lt;/em&gt;. Look up online what this means!&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;As we can see, different instructions have different &lt;strong&gt;opcodes&lt;/strong&gt;.
+And even when the instructions are the same, the different addressing mode result in different &lt;strong&gt;opcodes&lt;/strong&gt; and change completely how the CPU should handle the &lt;strong&gt;operands&lt;/strong&gt; passed to it.&lt;/p&gt;
+&lt;p&gt;In our example, the first &lt;code&gt;LDA&lt;/code&gt; instruction used &lt;code&gt;11&lt;/code&gt; as a hex-form number that should be loaded to accumulator &amp;ldquo;as is&amp;rdquo;.
+the second &lt;code&gt;LDA&lt;/code&gt; instruction used &lt;code&gt;11&lt;/code&gt; as an address which stores the value to be loaded into the accumulator
+These 2 interpretations have very different meanings.&lt;/p&gt;
+&lt;p&gt;Each addressing mode of the CPU is a different way the CPU should interpret the values of the operands. I won&amp;rsquo;t list and explain them all here, but as we can infer from the example above, &lt;em&gt;immediate&lt;/em&gt; addressing means &amp;ldquo;using the raw value as is&amp;rdquo; and &lt;em&gt;absolute&lt;/em&gt; means &amp;ldquo;use the 2 operands to make up an address&amp;rdquo;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; The &lt;em&gt;zero page&lt;/em&gt; addressing mode is a bit less obvious at first, but it essentially it tells the CPU to fetch the value from the first memory page (page number zero) at offset specified by the operand. By doing that, you don&amp;rsquo;t need to pass the CPU the 0 page explicitly (ie in our example passing &lt;code&gt;0011&lt;/code&gt;) so the cpu needs to fetch one operand less - which means less execution cycles. This optimization is very useful and can potentially significantly decrease the execution time of a program.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3 id=&#34;to-summarize&#34;&gt;To summarize&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;The basic for-ever loop of the CPU is:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;fetch an opcode + operands&lt;/li&gt;
+&lt;li&gt;find out what instruction that is, what operands it has and how to read them&lt;/li&gt;
+&lt;li&gt;execute the instruction&lt;/li&gt;
+&lt;li&gt;repeat&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;An &lt;strong&gt;instruction&lt;/strong&gt; is a command you can pass to the CPU to make it do something (store this in that, load this from that, jump to this place, etc)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;addressing modes&lt;/strong&gt; are the different ways the CPU can interpret the operands passed to an instruction (store a value at a certain register, store the value pointed by this address into a certain register, etc)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;A combination of a certain &lt;strong&gt;instruction&lt;/strong&gt; with a certain &lt;strong&gt;addressing mode&lt;/strong&gt; results in an &lt;strong&gt;opcode&lt;/strong&gt; - a unique identifier which tells the CPU exactly what it should do.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;You can check out all the 6502 instructions and the available addressing modes &lt;a href=&#34;https://www.masswerk.at/6502/6502_instruction_set.html&#34;&gt;here&lt;/a&gt;&lt;/p&gt;
+&lt;h2 id=&#34;the-alu&#34;&gt;The ALU&lt;/h2&gt;
+&lt;p&gt;ALU (Arithmetic Logic Unit) - that is the part of the CPU that actually performs the calculations. It takes in data some data, and outputs it out to a register called the accumulator.&lt;/p&gt;
+&lt;!-- raw HTML omitted --&gt;
+&lt;h2 id=&#34;registers&#34;&gt;Registers&lt;/h2&gt;
+&lt;p&gt;The 6502 has a few registers:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;X&lt;/strong&gt; - A 1 byte wide utility register the programmer can use to store some data, to be later used in calculations, writing to RAM or MMIO, etc. The main use of this register is as an offset from some fixed address. For example, a programmer could write a simple loop to iterate over every element in a certain address range, with very few lines of code.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Y&lt;/strong&gt; - Exactly the same as X, although some addressing modes require the use Y instead of X and vise versa.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;A&lt;/strong&gt; (short for Accumulator) - We&amp;rsquo;ve already seen that one the section above. A 1 byte register used by the accumulator to output the result of a calculation. The programmer can also use this register for various needs (temporarily storing values, loading these values to memory, etc)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;PC&lt;/strong&gt; (short for Program Counter) - A 16 bit register used to hold the address for the next instruction to be executed. After each instruction the counter gets incremented some amount to point to the next instruction. The incrementation amount differs depending on the opcode, as different instructions and addressing modes accommodate different amounts of space.
+(For example in the example above the &lt;code&gt;lda&lt;/code&gt; instruction only used 1 operand, which is 1 byte and the &lt;code&gt;sta&lt;/code&gt; instruction used 2 operands, which make up to be 2 bytes)&lt;/p&gt;
+&lt;p&gt;Architecually, This register is divided  into 2:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;PCL&lt;/strong&gt; - the low 8 bits (byte) of &lt;strong&gt;PC&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;PCH&lt;/strong&gt; - the high 8 bits (byte) of &lt;strong&gt;PC&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;S&lt;/strong&gt; (short for Stack Pointer) - This register holds the address of the memory stack.
+The stack is a data structure (don&amp;rsquo;t know what that is? Look it up!) used by the 6502 to save temporary data, or for saving the return address to jump to when a subroutine ends.
+Similarly to other systems, the 6502 stack grows downwards.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;A value is &lt;em&gt;saved&lt;/em&gt; on the stack by writing to the address pointed by &lt;strong&gt;S&lt;/strong&gt; and &lt;em&gt;decrementing&lt;/em&gt; &lt;strong&gt;S&lt;/strong&gt; by the size of the written data. Saving a value on the stack is commonly called &amp;ldquo;&lt;em&gt;Pushing&lt;/em&gt;&amp;rdquo;&lt;/li&gt;
+&lt;li&gt;A value is &lt;em&gt;retrieved&lt;/em&gt; from the stack by &lt;em&gt;decrementing&lt;/em&gt; &lt;strong&gt;S&lt;/strong&gt;, and copying the value currently pointed at by &lt;strong&gt;S&lt;/strong&gt;. Retrieving a value on the stack is commonly called &amp;ldquo;&lt;em&gt;Pulling&lt;/em&gt;&amp;rdquo; or &amp;ldquo;&lt;em&gt;Popping&lt;/em&gt;&amp;rdquo;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; When &lt;em&gt;popping&lt;/em&gt; a value, we only need to decrement &lt;strong&gt;S&lt;/strong&gt; because we don&amp;rsquo;t care that the value is technically &amp;ldquo;still there&amp;rdquo; - setting it to 0 is just more work. We simply decrement &lt;strong&gt;S&lt;/strong&gt;, thus loosing reference to that value and effectively &amp;ldquo;deleting&amp;rdquo; it. (A good analogy would be: If you want to get rid of a banana peel, you don&amp;rsquo;t go through the hassle of burning it or ripping it to shreds - you simply throw it in the garbage and &amp;ldquo;loose reference&amp;rdquo; of it)&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;P&lt;/strong&gt; (status register) - This registers bits are used as flags to keep track of certain stuff an instruction done. For example, if an &lt;code&gt;inc&lt;/code&gt; caused A to overflow out of its bounds and caused a reset. If interrupts to the CPU are disabled, if the current instruction caused a value to become negative, etc. For more information, check out &lt;a href=&#34;https://www.nesdev.org/wiki/Status_flags&#34;&gt;this page&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;IR&lt;/strong&gt; (short for Instruction Register) - This register isn&amp;rsquo;t necessary for emulation behavior, but it is part of the CPU&amp;rsquo;s architecture so I thought I&amp;rsquo;ll include it. This one is very simple - it&amp;rsquo;s a 1 byte register holding the opcode of the current instruction the CPU is handling.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;the-clock&#34;&gt;The clock&lt;/h2&gt;
+&lt;p&gt;The clock is the component of the CPU which tells it what it should do now. The clock ticks indefinitely, and each click tick the CPU moves to the next stage of the fetch-decode-execute cycle.&lt;/p&gt;
+&lt;p&gt;So it looks something like:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;fetch&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;tick&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;decode&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;tick&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;execute&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;tick&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;fetch&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;tick&lt;/em&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;decode&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&amp;hellip; etc&lt;/p&gt;
+&lt;h2 id=&#34;interrupts&#34;&gt;Interrupts&lt;/h2&gt;
+&lt;p&gt;Say the user pressed a button, or another component of the machine has finished doing something and needs to tell the CPU, or some other important and urgent event that happened that the CPU should respond to.&lt;/p&gt;
+&lt;p&gt;What can we do?&lt;/p&gt;
+&lt;p&gt;Well, one of the ways is using interrupts.
+interrupts are essentially, as their name suggests - signals sent to the CPU to interrupt its current execution.
+they cause the CPU to stop whatever its currently doing, and respond to the new event that just happened.&lt;/p&gt;
+&lt;p&gt;Interrupts could be very costly, as they make the CPU drop everything its doing, save what it was doing (so later when it finished handling the event it knowns where it stopped off), and take care of the event. Then when its done, it reads the data it saved to &amp;ldquo;remember&amp;rdquo; what it was doing before the interrupt, and continues execution.
+So interrupts should used only when really necessary.&lt;/p&gt;
+&lt;p&gt;The 6502 has 2 different kinds of interrupts:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;IRQ (Interrupt ReQuest) - A kind of interrupt used by mappers for example. This pin is mostly used for lower priority events, as the CPU can ignore them by setting the &lt;em&gt;Interrupt Disable&lt;/em&gt; flag in the P register.
+It pushes the P and PC registers onto the stack, and writes the IRQ interrupt vector (which is on addresses &lt;code&gt;$fffe&lt;/code&gt; and &lt;code&gt;$ffff&lt;/code&gt;) to PC.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;NMI (Non Maskable Interrupt) - As the name implies, this is an interrupt the CPU cannot ignore. It is used for more urgent and important events. A use of this interrupt is by the PPU for example: when it enters the first vblank scanline (don&amp;rsquo;t worry, we will talk about it in the PPU internals write up)
+It pushes the P and PC registers onto the stack, and writes the NMI interrupt vector (which is on addresses &lt;code&gt;$fffa&lt;/code&gt; and &lt;code&gt;$fffb&lt;/code&gt;) to PC.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; I&amp;rsquo;m writing this clarification, because I remember it made me confused: Some people say there is another interrupt, called BRK (or software interrupt). This is not entirely true. BRK is an instruction of the 6502, which lets the programmer generate an interrupt from the games code, but in reality, all it does is cause an IRQ interrupt, with the special addition of setting the &lt;code&gt;B&lt;/code&gt; flag on the P register to 1.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;the-internal-buses&#34;&gt;The internal buses&lt;/h2&gt;
+&lt;p&gt;This section isn&amp;rsquo;t really relevant for good emulation, but it is part of the architecture and I think it&amp;rsquo;s important enough to include it here.&lt;/p&gt;
+&lt;p&gt;In general, computer buses connect some components together and allows them to communicate with each other.&lt;/p&gt;
+&lt;p&gt;So far, we&amp;rsquo;ve talked about the many components of the NES (The registers, the clock, the ALU, etc) which together form the entity called &amp;ldquo;The CPU&amp;rdquo;. As you might have guessed, this is the job of the CPUs internal buses.
+The 6502 has 2 buses:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The &lt;strong&gt;Internal Data Bus&lt;/strong&gt; - which is used to transfer data between the different components of the CPU. A component writes to that bus, and a different component reads from it.&lt;/li&gt;
+&lt;li&gt;The &lt;strong&gt;Internal Address Bus&lt;/strong&gt; - which is used to transfer addresses between the different components of the CPU. A component writes to that bus, and that address is read by a different component.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The internal buses are part of the process of communicating with the system bus that connects all devices on the system. (the internal data bus is connected to the system data bus, and the internal address bus is actually PART of the system address bus)&lt;/p&gt;
+&lt;h2 id=&#34;final-words&#34;&gt;Final words&lt;/h2&gt;
+&lt;p&gt;Hope this writeup helped understanding how the CPU of the NES works. I know I say this every writeup, but even though it is very hard to understand as a beginner, I can&amp;rsquo;t recommend the NESdev wiki enough. It contains everything emu devs or game devs of the NES need to know&lt;/p&gt;
+- http://localhost:42897/series/nes-internals/2024-03-14-cpu/ - </description>
+        </item>
+    
+    
+    
+        <item>
+        <title>NES Internals Series</title>
+        <link>http://localhost:42897/series/2024-03-14-nes-internals-series/</link>
+        <pubDate>Thu, 14 Mar 2024 15:13:25 +0300</pubDate>
+        
+        <guid>http://localhost:42897/series/2024-03-14-nes-internals-series/</guid>
+        <description>My New Hugo Site http://localhost:42897/series/2024-03-14-nes-internals-series/ -&lt;h2 id=&#34;prologue&#34;&gt;Prologue&lt;/h2&gt;
+&lt;p&gt;In this blog/series I will try to give an introduction to the NES architecture, directed to new emu devs looking to get started.&lt;/p&gt;
+&lt;p&gt;The NES has 4 major components:
+The &lt;em&gt;CPU&lt;/em&gt;, the &lt;em&gt;PPU&lt;/em&gt;, the &lt;em&gt;APU&lt;/em&gt;, &lt;em&gt;Cartridge &amp;amp; Mappers&lt;/em&gt;, and the &lt;em&gt;Main Bus&lt;/em&gt;.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;http://localhost:42897/nes-internals-series/chapter-1&#34;&gt;&lt;strong&gt;CPU&lt;/strong&gt; - Chapter 1&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;http://localhost:42897/nes-internals-series/chapter-2&#34;&gt;&lt;strong&gt;PPU Background&lt;/strong&gt; - Chapter 2&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;http://localhost:42897/nes-internals-series/chapter-3&#34;&gt;&lt;strong&gt;PPU Foreground&lt;/strong&gt; - Chapter 3&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;http://localhost:42897/nes-internals-series/chapter-4&#34;&gt;&lt;strong&gt;Cartridge &amp;amp; Mappers&lt;/strong&gt; - Chapter 4&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=&#34;http://localhost:42897/nes-internals-series/chapter-5&#34;&gt;&lt;strong&gt;Controls&lt;/strong&gt; - Chapter 5&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;I do plan to write about the rest of the components as well in the future.&lt;/p&gt;
+&lt;h2 id=&#34;disclaimer&#34;&gt;Disclaimer&lt;/h2&gt;
+&lt;p&gt;This is not meant to be a substitute to documentation or anything like that. I try to provide simple explanation to each of the NES&amp;rsquo;s components, to make it easier to understand the NESdev wiki.&lt;/p&gt;
+&lt;p&gt;I&amp;rsquo;m not a professional by any means, and I still much more to learn. All the stuff written here is what I&amp;rsquo;ve learned and understood in my journey of writing an NES emulator.
+If you have found any mistakes, something isn&amp;rsquo;t clear, or just have some questions feel free to contact me at: &lt;a href=&#34;Roeegg22@gmail.com&#34;&gt;Roeegg22@gmail.com&lt;/a&gt;. you can also checkout my &lt;a href=&#34;https://github.com/Roeegg2&#34;&gt;Github page&lt;/a&gt;, the source code for my emulator is there&lt;/p&gt;
+- http://localhost:42897/series/2024-03-14-nes-internals-series/ - </description>
+        </item>
+    
+    
+    
+        <item>
+        <title>The PLT &#43; GOT, Lazy binding &#43; Eager binding</title>
+        <link>http://localhost:42897/posts/elf-plt-and-got/</link>
+        <pubDate>Wed, 06 Mar 2024 00:00:00 +0000</pubDate>
+        
+        <guid>http://localhost:42897/posts/elf-plt-and-got/</guid>
+        <description>My New Hugo Site http://localhost:42897/posts/elf-plt-and-got/ -&lt;h1 id=&#34;prologue&#34;&gt;Prologue&lt;/h1&gt;
+&lt;p&gt;This is just a short post explaining the GOT and PLT in the ELF format. No bullshit, just explanation.&lt;/p&gt;
+&lt;p&gt;Any assembly here will be x86_64, Intel syntax, but it&amp;rsquo;s the same jist for different architectures as well.&lt;/p&gt;
+&lt;h1 id=&#34;plt--got-explained-in-a-nutshell&#34;&gt;PLT + GOT explained in a nutshell&lt;/h1&gt;
+&lt;p&gt;The PLT, GOT and GOT.PLT are all sections in an ELF file.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The PLT is a table of entries, each entry being a very short code snippet (often times called &lt;em&gt;stub&lt;/em&gt;).&lt;/li&gt;
+&lt;li&gt;The GOT is also a table of entries, each entry being a an address to some symbol (could be function, global variable, etc).&lt;/li&gt;
+&lt;li&gt;The GOT.PLT is simply the part of the GOT which the PLT uses.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Usually when we call a function, we use &lt;code&gt;call &amp;lt;address of function we want to call&amp;gt;&lt;/code&gt;.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; the operand for &lt;code&gt;call&lt;/code&gt; doesn&amp;rsquo;t have to be a hardcoded address. It might be the offset from &lt;code&gt;RIP&lt;/code&gt;, maybe we use the value in some register as address, etc. Either way, it&amp;rsquo;s the same gist - we push the current &lt;code&gt;RIP&lt;/code&gt; to the stack and jump directly to the specified address.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Over all simple.&lt;/p&gt;
+&lt;p&gt;Well, it&amp;rsquo;s not always the case.
+Calling functions which utilize the PLT looks a bit different:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;instead of &lt;code&gt;call&lt;/code&gt;ing straight to the address of the function we want to execute, we &lt;code&gt;call&lt;/code&gt; to the address of some PLT entry.&lt;/li&gt;
+&lt;li&gt;the PLT entry, contains a &lt;code&gt;jmp&lt;/code&gt; instruction to &lt;em&gt;another&lt;/em&gt; address - a GOT.PLT entry&lt;/li&gt;
+&lt;li&gt;the GOT.PLT entry contains the actual address of the function we wanted to call.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; as you&amp;rsquo;ll see for yourself very soon, usually the PLT stub has additional code, not just a single &lt;code&gt;jmp&lt;/code&gt; instruction to the desired GOT.PLT entry. We&amp;rsquo;ll get to that in a bit.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h1 id=&#34;motivation&#34;&gt;Motivation&lt;/h1&gt;
+&lt;p&gt;The first time I&amp;rsquo;ve come across this mechanism the first thing I asked myself &amp;ldquo;Isn&amp;rsquo;t this just overcomplicating things?&amp;rdquo;.
+At first glance it does seem a bit complicated, but there are good reasons for it:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;In case a relocation must be applied (for example when the function is implemented by a shared object) instead of applying relocations straight to the &lt;code&gt;.text&lt;/code&gt; section in every place the function is called, you apply it once in the GOT, and you&amp;rsquo;re good to go!&lt;/li&gt;
+&lt;li&gt;Using different versions of functions - sometimes, the developer wants to call a different function depending on what version, architecture, OS, etc
+the user is rocking. That way the dynamic linker can choose which address to replace the GOT with, depending on what function should be called (this is what happens in a lot of glibc functions, like &lt;code&gt;printf&lt;/code&gt; for example)&lt;/li&gt;
+&lt;li&gt;Lets the linker use a technique called &lt;em&gt;lazy binding&lt;/em&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;Wha&amp;rsquo;ts lazy binding you ask? Well, let me tell you!&lt;/p&gt;
+&lt;h1 id=&#34;lazy-vs-eager-binding-in-a-nutshell&#34;&gt;Lazy vs eager binding in a nutshell&lt;/h1&gt;
+&lt;p&gt;Lazy binding and eager binding are different methods to apply relocations (binding function calls to their actual address)&lt;/p&gt;
+&lt;p&gt;In &lt;strong&gt;eager&lt;/strong&gt; binding, the linker resolves the relocations before transfaring control to the program. In &lt;strong&gt;lazy&lt;/strong&gt; binding, (as the name implies) the linker does this lazily - he doesn&amp;rsquo;t initially resolve the relocations, but instead it resolves a relocation at runtime, when the program tries to use the symbol associated with that relocation.&lt;/p&gt;
+&lt;p&gt;The reason lazy binding was introduced was because in large applications, applying all relocations before running could be very time consuming, which would result in quite a big delay until the program actually runs. On the other hand, applying relocations at runtime results in a decrease of total execution speed.&lt;/p&gt;
+&lt;p&gt;Glibc uses lazy binding by default unless specified otherwise, but in contrast Google&amp;rsquo;s Fuchsia libc uses eager binding.&lt;/p&gt;
+&lt;p&gt;There isn&amp;rsquo;t one truth, and each method is better for different scenarios depending on the programs priority and requirements.&lt;/p&gt;
+&lt;h1 id=&#34;running-example&#34;&gt;Running example&lt;/h1&gt;
+&lt;p&gt;Let&amp;rsquo;s see all of this in action now!
+Consider the following C program:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-c&#34; data-lang=&#34;c&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;/* prog.c */&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#include&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;&amp;lt;stdio.h&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;#include&lt;/span&gt; &lt;span style=&#34;color:#75715e&#34;&gt;&amp;lt;stdlib.h&amp;gt;&lt;/span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;main&lt;/span&gt;(&lt;span style=&#34;color:#66d9ef&#34;&gt;void&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt; ptr &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;malloc&lt;/span&gt;(&lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;*&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;sizeof&lt;/span&gt;(&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt;));
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;for&lt;/span&gt; (&lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; i &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;; i &lt;span style=&#34;color:#f92672&#34;&gt;&amp;lt;&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;10&lt;/span&gt;; i&lt;span style=&#34;color:#f92672&#34;&gt;++&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        ptr[i] &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; i;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#a6e22e&#34;&gt;printf&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;%d&lt;/span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;\n&lt;/span&gt;&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;&lt;/span&gt;, ptr[i]);
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    }
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;return&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;A simple trivial program, which allocates memory for 10 integers, moves over the array and prints the values.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; It is bad practice to call &lt;code&gt;malloc&lt;/code&gt; without checking if the pointer is &lt;code&gt;NULL&lt;/code&gt;, and it is also bad practice to not &lt;code&gt;free&lt;/code&gt; the memory after you&amp;rsquo;re done with it. This is just an example, and the program won&amp;rsquo;t encounter any issues on my system with allocating this space + the allocated memory will be freed automatically anyway when exiting the program. But don&amp;rsquo;t be like me - always check for errors and free your memory when you&amp;rsquo;re done using it!&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Compiling this with &lt;code&gt;gcc -o prog prog.c -no-pie&lt;/code&gt;&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;&lt;em&gt;NOTE:&lt;/em&gt;&lt;/strong&gt; I&amp;rsquo;m running all of this on a &lt;code&gt;x86_64 Arch Linux&lt;/code&gt; machine (&lt;code&gt;uname -r = 6.11.3-arch1-1&lt;/code&gt;). Things might be a bit different on your machine, but the general idea should be the same.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;When running the program, we get as expected:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;[&lt;/span&gt;roeet@roeetarch ~&lt;span style=&#34;color:#f92672&#34;&gt;]&lt;/span&gt;$ ./prog
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;2&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;3&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;4&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;5&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;6&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;7&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;8&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#ae81ff&#34;&gt;9&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Running &lt;code&gt;objdump -d prog&lt;/code&gt; we get inter alia:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-asm&#34; data-lang=&#34;asm&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;Disassembly&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;of&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;section&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;.plt&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;0000000000001020&lt;/span&gt; &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;printf@plt-0x10&lt;/span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&amp;gt;&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;1020:&lt;/span&gt;       &lt;span style=&#34;color:#a6e22e&#34;&gt;ff&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;35&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;ca&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;2&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;f&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;00&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;00&lt;/span&gt;       &lt;span style=&#34;color:#66d9ef&#34;&gt;push&lt;/span&gt;   &lt;span style=&#34;color:#ae81ff&#34;&gt;0x2fca&lt;/span&gt;(%rip)        &lt;span style=&#34;color:#75715e&#34;&gt;# 3ff0 &amp;lt;_GLOBAL_OFFSET_TABLE_+0x8&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;1026:&lt;/span&gt;       &lt;span style=&#34;color:#a6e22e&#34;&gt;ff&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;25&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;cc&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;2&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;f&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;00&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;00&lt;/span&gt;       &lt;span style=&#34;color:#66d9ef&#34;&gt;jmp&lt;/span&gt;    *&lt;span style=&#34;color:#ae81ff&#34;&gt;0x2fcc&lt;/span&gt;(%rip)        &lt;span style=&#34;color:#75715e&#34;&gt;# 3ff8 &amp;lt;_GLOBAL_OFFSET_TABLE_+0x10&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;102&lt;/span&gt;c:       &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;0&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;f&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;f&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;40&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;00&lt;/span&gt;             &lt;span style=&#34;color:#66d9ef&#34;&gt;nopl&lt;/span&gt;   &lt;span style=&#34;color:#ae81ff&#34;&gt;0x0&lt;/span&gt;(%rax)
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;0000000000001030&lt;/span&gt; &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;printf@plt&lt;/span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&amp;gt;&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;1030:&lt;/span&gt;       &lt;span style=&#34;color:#a6e22e&#34;&gt;ff&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;25&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;ca&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;2&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;f&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;00&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;00&lt;/span&gt;       &lt;span style=&#34;color:#66d9ef&#34;&gt;jmp&lt;/span&gt;    *&lt;span style=&#34;color:#ae81ff&#34;&gt;0x2fca&lt;/span&gt;(%rip)        &lt;span style=&#34;color:#75715e&#34;&gt;# 4000 &amp;lt;printf@GLIBC_2.2.5&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;1036:&lt;/span&gt;       &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;68&lt;/span&gt; &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;00&lt;/span&gt; &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;00&lt;/span&gt; &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;00&lt;/span&gt; &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;00&lt;/span&gt;          &lt;span style=&#34;color:#a6e22e&#34;&gt;push&lt;/span&gt;   &lt;span style=&#34;color:#66d9ef&#34;&gt;$0x0&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;103&lt;/span&gt;b:       &lt;span style=&#34;color:#a6e22e&#34;&gt;e9&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;e0&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;ff&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;ff&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;ff&lt;/span&gt;          &lt;span style=&#34;color:#66d9ef&#34;&gt;jmp&lt;/span&gt;    &lt;span style=&#34;color:#ae81ff&#34;&gt;1020&lt;/span&gt; &amp;lt;&lt;span style=&#34;color:#66d9ef&#34;&gt;_init&lt;/span&gt;+&lt;span style=&#34;color:#ae81ff&#34;&gt;0x20&lt;/span&gt;&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;0000000000001040&lt;/span&gt; &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;malloc@plt&lt;/span&gt;&lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;&amp;gt;&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;1040:&lt;/span&gt;       &lt;span style=&#34;color:#a6e22e&#34;&gt;ff&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;25&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;c2&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;2&lt;/span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;f&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;00&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;00&lt;/span&gt;       &lt;span style=&#34;color:#66d9ef&#34;&gt;jmp&lt;/span&gt;    *&lt;span style=&#34;color:#ae81ff&#34;&gt;0x2fc2&lt;/span&gt;(%rip)        &lt;span style=&#34;color:#75715e&#34;&gt;# 4008 &amp;lt;malloc@GLIBC_2.2.5&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;    &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;1046:&lt;/span&gt;       &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;68&lt;/span&gt; &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;01&lt;/span&gt; &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;00&lt;/span&gt; &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;00&lt;/span&gt; &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;00&lt;/span&gt;          &lt;span style=&#34;color:#a6e22e&#34;&gt;push&lt;/span&gt;   &lt;span style=&#34;color:#66d9ef&#34;&gt;$0x1&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#960050;background-color:#1e0010&#34;&gt;104&lt;/span&gt;b:       &lt;span style=&#34;color:#a6e22e&#34;&gt;e9&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;d0&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;ff&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;ff&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;ff&lt;/span&gt;          &lt;span style=&#34;color:#66d9ef&#34;&gt;jmp&lt;/span&gt;    &lt;span style=&#34;color:#ae81ff&#34;&gt;1020&lt;/span&gt; &amp;lt;&lt;span style=&#34;color:#66d9ef&#34;&gt;_init&lt;/span&gt;+&lt;span style=&#34;color:#ae81ff&#34;&gt;0x20&lt;/span&gt;&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;As we see, in this case we get 2 PLT entries - one for &lt;code&gt;printf&lt;/code&gt; and one for &lt;code&gt;malloc&lt;/code&gt;. Each PLT entry contains a &lt;code&gt;jmp&lt;/code&gt; instruction to a GOT.PLT entry, which contains the actual address of the function we want to call.&lt;/p&gt;
+&lt;p&gt;And:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;0000000000001149 &amp;lt;main&amp;gt;:
+    1149:       55                      push   %rbp
+    114a:       48 89 e5                mov    %rsp,%rbp
+    114d:       48 83 ec 10             sub    $0x10,%rsp
+    1151:       bf 28 00 00 00          mov    $0x28,%edi
+    1156:       e8 e5 fe ff ff          call   1040 &amp;lt;malloc@plt&amp;gt;
+    115b:       48 89 45 f8             mov    %rax,-0x8(%rbp)
+    115f:       c7 45 f4 00 00 00 00    movl   $0x0,-0xc(%rbp)
+    1166:       eb 49                   jmp    11b1 &amp;lt;main+0x68&amp;gt;
+    1168:       8b 45 f4                mov    -0xc(%rbp),%eax
+    116b:       48 98                   cltq
+    116d:       48 8d 14 85 00 00 00    lea    0x0(,%rax,4),%rdx
+    1174:       00 
+    1175:       48 8b 45 f8             mov    -0x8(%rbp),%rax
+    1179:       48 01 c2                add    %rax,%rdx
+    117c:       8b 45 f4                mov    -0xc(%rbp),%eax
+    117f:       89 02                   mov    %eax,(%rdx)
+    1181:       8b 45 f4                mov    -0xc(%rbp),%eax
+    1184:       48 98                   cltq
+    1186:       48 8d 14 85 00 00 00    lea    0x0(,%rax,4),%rdx
+    118d:       00 
+    118e:       48 8b 45 f8             mov    -0x8(%rbp),%rax
+    1192:       48 01 d0                add    %rdx,%rax
+    1195:       8b 00                   mov    (%rax),%eax
+    1197:       89 c6                   mov    %eax,%esi
+    1199:       48 8d 05 64 0e 00 00    lea    0xe64(%rip),%rax        # 2004 &amp;lt;_IO_stdin_used+0x4&amp;gt;
+    11a0:       48 89 c7                mov    %rax,%rdi
+    11a3:       b8 00 00 00 00          mov    $0x0,%eax
+    11a8:       e8 83 fe ff ff          call   1030 &amp;lt;printf@plt&amp;gt;
+    11ad:       83 45 f4 01             addl   $0x1,-0xc(%rbp)
+    11b1:       83 7d f4 09             cmpl   $0x9,-0xc(%rbp)
+    11b5:       7e b1                   jle    1168 &amp;lt;main+0x1f&amp;gt;
+    11b7:       b8 00 00 00 00          mov    $0x0,%eax
+    11bc:       c9                      leave
+    11bd:       c3                      ret
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;Let&amp;rsquo;s take &lt;code&gt;printf&lt;/code&gt; as an example:&lt;/p&gt;
+- http://localhost:42897/posts/elf-plt-and-got/ - </description>
+        </item>
+    
+    
+    
+        <item>
+        <title>Summary of Ulrich Drepper&#39;s legendary tls.pdf</title>
+        <link>http://localhost:42897/posts/tls/</link>
+        <pubDate>Wed, 10 Jan 2024 00:00:00 +0000</pubDate>
+        
+        <guid>http://localhost:42897/posts/tls/</guid>
+        <description>My New Hugo Site http://localhost:42897/posts/tls/ -&lt;h2 id=&#34;disclaimer&#34;&gt;Disclaimer:&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;The targeted audience of this document is dynamic linker &amp;amp; loader implementors, so important information for other tools (such as linkers and compilers) might be missing.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;This writeup is DEFINITELY not a substitute for the original document. It is highly recommended to read the original document before reading this summary. I wrote it to help me understand the document better, and to be able to reference things quickly if I forget something. It would be very hard to understand this mechanism without reading the original document first.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;There are some differences of implementation across different architectures. I will only cover x86_64 since this is what I care about. If you happen to work on a different architecture, feel free to contribute :)&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2 id=&#34;terminology&#34;&gt;Terminology:&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;Module&lt;/code&gt; - A shared object or executable&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;modid (Module ID)&lt;/code&gt; - A unique identifier for a module&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;tid (Thread ID)&lt;/code&gt; - A unique identifier for a thread&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;TLS Image&lt;/code&gt; - The data stored in the TLS segment of a module&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;TLS block&lt;/code&gt; - An &lt;strong&gt;initilized&lt;/strong&gt; TLS image allocated for a thread&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;TCB (Thread Control Block)&lt;/code&gt; - A structure that contains information about a thread&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;TP (Thread Pointer)&lt;/code&gt; - A register that points to the TCB of a thread.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;DTV (Dynamic Thread Vector)&lt;/code&gt; - A vector that contains pointers to the TLS blocks of a thread.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;To refer to a structure belonging to some thread &lt;code&gt;i&lt;/code&gt;, the notation &lt;code&gt;STRUCTUREi&lt;/code&gt; is used (e.g. &lt;code&gt;TPi&lt;/code&gt;, &lt;code&gt;TCBi&lt;/code&gt;, etc).&lt;/p&gt;
+&lt;h2 id=&#34;general-summary&#34;&gt;General Summary:&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;TLS variables are stored in a similar format to regular variables (except the &lt;code&gt;SHF_TLS&lt;/code&gt; flag is set in the section header). &lt;code&gt;tdata&lt;/code&gt; and &lt;code&gt;tbss&lt;/code&gt; are the TLS equivalent of &lt;code&gt;.data&lt;/code&gt; and &lt;code&gt;.bss&lt;/code&gt; sections.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;At runtime, the dynamic linker must prepare &lt;code&gt;.tbss&lt;/code&gt; image - copy it and zero out the uncopied part.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Since TLS segment isn&amp;rsquo;t directly accessed (it is used as an image to create one of the blocks for each thread), the &lt;code&gt;ST_VALUE&lt;/code&gt; field isn&amp;rsquo;t used to store the offset/address to which the symbol will be loaded - instead, (in executables and shared objects) the &lt;code&gt;ST_VALUE&lt;/code&gt; field is used to store the offset of the symbol in the TLS image.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The TLS program header is all the dynamic linker needs. (contains &lt;code&gt;.tdata&lt;/code&gt; and &lt;code&gt;.tbss&lt;/code&gt;)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The &lt;code&gt;DF_STATIC_TLS&lt;/code&gt; flag marks that the module uses static TLS. (more on that later on)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Efficient dynamic linkers should be able to lazily allocate TLS blocks - often times a thread will require only a few TLS variables in certain TLS images. (this method can&amp;rsquo;t be &lt;em&gt;always&lt;/em&gt; used though. more on that later)&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;TLS variables are identified using&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;the module they are defined in&lt;/li&gt;
+&lt;li&gt;the offset in the module&amp;rsquo;s TLS image.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;This is different from regular variables, which are defined simply by an address/offset from load base address. So there is no issue in accessing them.
+So there is a need for some mechanism to map addresses to TLS variables. This is where the following 2 variants come into play.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Each architecture uses a different variant. (For more info checkout the original document)&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;tls-variant-i&#34;&gt;TLS Variant I:&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;./assets/tls-variant1.png&#34; alt=&#34;Variant I&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;First thing &lt;code&gt;DTVi&lt;/code&gt; points to is a number &lt;code&gt;GENi&lt;/code&gt; which is used to resize the DTV.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;First field &lt;code&gt;TPi&lt;/code&gt; points to must be &lt;code&gt;DTVi&lt;/code&gt;. The rest of the fields are typical TCB information (most importantly pointer to the TLS block. But each implementation can add their own fields as they need).&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;TLS blocks allocated at startup are allocated contiguously. That way they can accessed with a fixed offset from &lt;code&gt;TPi&lt;/code&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Access to TLS variables &lt;strong&gt;which are in blocks loaded at startup&lt;/strong&gt; can be done using either:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;DTVi&lt;/code&gt; index (ie modid) + offset in the TLS image&lt;/li&gt;
+&lt;li&gt;offset from the &lt;code&gt;TPi&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;tls-variant-ii&#34;&gt;TLS Variant II:&lt;/h3&gt;
+&lt;p&gt;&lt;img src=&#34;./assets/tls-variant2.png&#34; alt=&#34;Variant II&#34;&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Almost everything in Variant I applies here too, only differences are:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;The TLS blocks are allocated to the &lt;em&gt;left&lt;/em&gt; of &lt;code&gt;TPi&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;there is no restriction for &lt;code&gt;TPi&lt;/code&gt; to have its first field point to &lt;code&gt;DTVi&lt;/code&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;In both variants, the position of the &lt;code&gt;TCB&lt;/code&gt; is computed using architecture-specific formulas: TODO: check what the fuck this is&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;$$ round(x, y) = y \cdot \lceil \frac{x}{y} \rceil $$&lt;/p&gt;
+&lt;p&gt;There are 2 TLS models a module can use - static and dynamic (NOT TO BE CONFUSED WITH STATIC AND DYNAMIC LINKING!)&lt;/p&gt;
+&lt;h3 id=&#34;static-tls&#34;&gt;Static TLS:&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;In this case, TLS images are allocated at program startup. The dynamic linker applies relocations at startup to construct the final address of the variable.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;dynamic-tls&#34;&gt;Dynamic TLS:&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;In this model, TLS images are allocated sometime during program runtime (this model is used for example shared objects loaded by calling &lt;code&gt;dlopen&lt;/code&gt;). The dynamic linker provides a function called &lt;code&gt;__tls_get_addr&lt;/code&gt;, which allocated memory and returns the address of some variable as needed. (more info regarding that function later on)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;startup--later&#34;&gt;Startup &amp;amp; Later&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;(depends on architecture and runtime, but in general) statically-linked executables do not load any modules dynamically (both at startup using &lt;code&gt;DT_NEEDED&lt;/code&gt; and using at runtime &lt;code&gt;dlopen&lt;/code&gt;). This means that dealing with TLS here is way simpler:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;There is only a single TLS image, so only a single TLS block for each thread&lt;/li&gt;
+&lt;li&gt;TLS blocks can be allocated at startup (they &lt;em&gt;can&lt;/em&gt; use dynamic TLS model, but there is no reason to do so)&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The mechanism of the dynamic linker to deal with TLS looks similar to the following:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Go over each module and if it uses TLS, save important information from it (all of this is stored in the program header) (Ulrich proposed using a linked list for this, which makes sense, but there is no obligation to do so):
+a. Pointer to the modules TLS image
+b. Size of the TLS images
+c. tlsoffset (offset of the TLS block allocated from the &lt;code&gt;TPi&lt;/code&gt;)
+d. flag indicating if the module uses static TLS&lt;/li&gt;
+&lt;li&gt;This list will be extended when a module using TLS is loaded at runtime&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The thread library uses this information to setup the TLS blocks for each thread.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Ulrich also mentions the possibility of merging a few static TLS images into a single one to shorten the number of entries in the list.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;It is also mentioned that in the case that all TLS images are using the static model then:&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;$$ tlssizeS = tlsoffsetM + tlssizeM $$&lt;/p&gt;
+&lt;p&gt;($$M$$ is the number of static TLS modules, $$S$$ refers to the merged TLS image)&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Of course if no TLS images use the static model, this space isn&amp;rsquo;t allocated.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;modid&lt;/code&gt;&amp;rsquo;s are used to index into the &lt;code&gt;DTV&lt;/code&gt;. Runtime is free to choose how it wants to assign these &lt;code&gt;modid&lt;/code&gt;&amp;rsquo;s, but the first module (the main executable) should always be assigned &lt;code&gt;modid&lt;/code&gt; 1. Of course 2 modules can&amp;rsquo;t have the same &lt;code&gt;modid&lt;/code&gt; (UNLESS a module is unloaded. Once the module is unloaded, you can repurpose it&amp;rsquo;s &lt;code&gt;modid&lt;/code&gt; (as well as other resources assigned to it, such as TLS image entry for exmaple)).&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;__tls_get_addr&#34;&gt;__tls_get_addr:&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;See the original document for exact details for each architecture. In general, it recieves a &lt;code&gt;modid&lt;/code&gt; and an offset for a variable in the TLS image. It checks if the current thread has a TLS block for that &lt;code&gt;modid&lt;/code&gt;, if not it allocates and initilizes it. Then it returns the address of the variable in the TLS block.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;As you can see, &lt;code&gt;__tls_get_addr&lt;/code&gt; lets us implement lazy allocation of TLS blocks.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Theoretically there is no limit to the amount of TLS images a program could have loaded. So the &lt;code&gt;DTVi&lt;/code&gt; should be able to grow dynamically as needed. This is exactly what the &lt;code&gt;GENi&lt;/code&gt; field is for; when a new thread is created, we first check if the current size of &lt;code&gt;DTVi&lt;/code&gt; exceeds &lt;code&gt;GENi&lt;/code&gt;, if it does, we reallocate &lt;code&gt;DTVi&lt;/code&gt; to be larger (and when we allocate, we allocate a few additional slots and increase &lt;code&gt;GENi&lt;/code&gt; by that amount).&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;statically-linked-executables&#34;&gt;Statically linked executables:&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;As stated before, statically linked executables are &lt;em&gt;usually&lt;/em&gt; not allowed to load modules at runtime. (and even when they do, only simple modules not using TLS could be loaded). This means that on statically linked executables:
+&lt;ol&gt;
+&lt;li&gt;There is only a single TLS image (that of the executable. 0 TLS images if the executable doesn&amp;rsquo;t use TLS of course)&lt;/li&gt;
+&lt;li&gt;That TLS block is allocated on program startup - so static TLS model is used.&lt;/li&gt;
+&lt;li&gt;Since there is only a single TLS image, the offsets of the variables can be used as is. (no need for &lt;code&gt;modid&lt;/code&gt;)&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;tls-access-models-specifically-for-0x86_64&#34;&gt;TLS Access models (specifically for 0x86_64):&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;Whilst regular symbol relocations result in some address, TLS symbol relocatoins should result in a &lt;code&gt;modid&lt;/code&gt; and an offset in the TLS image.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Since it is discouraged to modify &lt;code&gt;.text&lt;/code&gt;, references to TLS variables use the GOT, and the relocation is done on the GOT entry.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;There are 4 models for accessing TLS variables:&lt;/p&gt;
+&lt;h3 id=&#34;general-dynamic-model&#34;&gt;General dynamic model&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Most generic model, and the least efficient.&lt;/li&gt;
+&lt;li&gt;This is the default model. The compiler will use a different model only when certain conditions are met, so a more efficient model is possible.&lt;/li&gt;
+&lt;li&gt;Code compiled with this model can be used everywhere, and access variables defined anywhere.&lt;/li&gt;
+&lt;li&gt;Variable offset and &lt;code&gt;modid&lt;/code&gt; are not known, they are decided by the dynamic linker at runtime. They are passed to &lt;code&gt;__tls_get_addr&lt;/code&gt; which returns the final address of the variable.&lt;/li&gt;
+&lt;li&gt;Since &lt;code&gt;__tls_get_addr&lt;/code&gt; is used here, we can defer the allocation of TLS blocks until needed.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;implementation-example-for-x86_64&#34;&gt;Implementation example for x86_64&lt;/h4&gt;
+&lt;p&gt;Consider the following code snippet:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-c&#34; data-lang=&#34;c&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;extern&lt;/span&gt; __thread &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; x;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&lt;/span&gt;x;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;__tls_get_addr&lt;/code&gt; is called with a pointer to an &lt;code&gt;tls_index&lt;/code&gt; type. This type is defined as follows:&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-c&#34; data-lang=&#34;c&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;typedef&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;struct&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#66d9ef&#34;&gt;size_t&lt;/span&gt; ti_module;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#66d9ef&#34;&gt;size_t&lt;/span&gt; ti_offset;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;} tls_index;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;R_X86_64_TLSGD&lt;/code&gt; relocation instructs the linker to allocate a &lt;code&gt;tls_index&lt;/code&gt; in the GOT (if the linker chooses GOT entry &lt;code&gt;n&lt;/code&gt; to place this type in, &lt;code&gt;ti_module&lt;/code&gt; and &lt;code&gt;ti_offset&lt;/code&gt; will be placed at &lt;code&gt;GOT[n]&lt;/code&gt; and &lt;code&gt;GOT[n+1]&lt;/code&gt; respectively).&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;R_X86_64_DTPMOD64&lt;/code&gt; relocation is used by the dynamic linker to set &lt;code&gt;ti_module&lt;/code&gt; to the &lt;code&gt;modid&lt;/code&gt; of the variable.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;code&gt;R_X86_64_DTPOFF64&lt;/code&gt; relocation is used by the dynamic linker to set &lt;code&gt;ti_offset&lt;/code&gt; to the offset of the variable in the TLS image.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;local-dynamic-model&#34;&gt;Local dynamic model&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;An optimisation of the general dynamic model.&lt;/li&gt;
+&lt;li&gt;This model is used when the compiler knows that the variable is defined in the same module it referenced in. (for example &lt;em&gt;static global&lt;/em&gt; or &lt;em&gt;protected/hidden&lt;/em&gt; variables). This optimisation is possible because we know the &lt;em&gt;offset&lt;/em&gt; at link time.&lt;/li&gt;
+&lt;li&gt;By passing &lt;code&gt;0&lt;/code&gt; as the offset to &lt;code&gt;__tls_get_addr&lt;/code&gt; we get the start of the TLS images. Then this value can be saved and easily just added to the offset of the variable to get the final address. Good compilers generate code that does this.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;implementation-example-for-x86_64-1&#34;&gt;Implementation example for x86_64&lt;/h4&gt;
+&lt;p&gt;Consider the following code snippet:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-c&#34; data-lang=&#34;c&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;static&lt;/span&gt; __thread &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; x1;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;static&lt;/span&gt; __thread &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; x2;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&lt;/span&gt;x1;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&lt;/span&gt;x2;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;Since in this case we already have the offsets, the only relocation required is &lt;code&gt;R_X86_64_DTPMOD64&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;initial-exec-model&#34;&gt;Initial exec model&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;This is an optimisation we can use when we know that the module uses the static TLS model. In that case, the TLS block is allocated at startup, so we can easily know the &lt;code&gt;modid&lt;/code&gt; and the offset of the variable. All we need to figure out in runtime is the offset from the TLS image to TP.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;implementation-example-for-x86_64-2&#34;&gt;Implementation example for x86_64&lt;/h4&gt;
+&lt;p&gt;Consider again the following code snippet:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-c&#34; data-lang=&#34;c&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;extern&lt;/span&gt; __thread &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; x;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&lt;/span&gt;x;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;Only relocation required is &lt;code&gt;R_X86_64_TPOFF64&lt;/code&gt; it is processed by finding the symbol in the TLS image, then adding the variable offset to the offset of the image to TP, and writing it to the GOT entry (where the relocation needs to be applied).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;local-exec-model&#34;&gt;Local exec model&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;This is an optimisation of the local dynamic module. This is the special case in which the module is the main executable. In this case, the &lt;code&gt;modid&lt;/code&gt; is always 1, so it&amp;rsquo;s TLS block is always the first one. That means we don&amp;rsquo;t need to know &lt;em&gt;anything&lt;/em&gt; about the other blocks.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id=&#34;implementation-example-for-x86_64-3&#34;&gt;Implementation example for x86_64&lt;/h4&gt;
+&lt;p&gt;Consider the following code snippet:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-c&#34; data-lang=&#34;c&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;static&lt;/span&gt; __thread &lt;span style=&#34;color:#66d9ef&#34;&gt;int&lt;/span&gt; x;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;&amp;amp;&lt;/span&gt;x;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;The only relocation required is &lt;code&gt;R_X86_64_TPOFF64&lt;/code&gt;. The offset of the variable is known at link time, so the only thing that needs to be done is to add the offset from TP.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;my-own-important-notes&#34;&gt;My own important notes&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;TLS symbols ALWAYS requires relocation - this is because the base address of the TLS block is decided by the dynamic linker at runtime.&lt;/li&gt;
+&lt;li&gt;Even if some modules are using dynamic TLS, it might be faster and more efficient somtimes to allocate the TLS blocks rightway, instead of doing it lazily. This is usually true when the TLS image of the module is small anyway.&lt;/li&gt;
+&lt;li&gt;The similar optimisation used for &lt;code&gt;DTVi&lt;/code&gt; using &lt;code&gt;GENi&lt;/code&gt; can be used for &lt;code&gt;DTV&lt;/code&gt; as well (if your implementation holds all &lt;code&gt;DTVi&lt;/code&gt; in one vector and not independently).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id=&#34;things-i-myself-dont-understand&#34;&gt;Things I myself don&amp;rsquo;t understand&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;Computing the thread-specific address of a TLS variable is therefore a simple oper-
+ation which can be performed by compiler-generated code which uses variant I. But it
+cannot be done by the compiler for architectures following variant II and there is also
+a good reason to not do it: deferred allocation (see below). - don&amp;rsquo;t understand what this means&lt;/li&gt;
+&lt;/ul&gt;
+- http://localhost:42897/posts/tls/ - </description>
+        </item>
+    
+    
+    
+    
+    
+    
+  </channel>
+</rss> 
