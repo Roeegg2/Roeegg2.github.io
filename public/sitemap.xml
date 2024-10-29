@@ -8,19 +8,19 @@
     <loc>http://localhost:1313/series/</loc>
     <lastmod>2024-04-23T15:13:25+03:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/series/nes-internals/controls/</loc>
+    <loc>http://localhost:1313/series/controls/</loc>
     <lastmod>2024-04-23T15:13:25+03:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/series/nes-internals/cart-and-mappers/</loc>
+    <loc>http://localhost:1313/series/cart-and-mappers/</loc>
     <lastmod>2024-04-22T15:13:25+03:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/series/nes-internals/ppu-foreground/</loc>
+    <loc>http://localhost:1313/series/ppu-foreground/</loc>
     <lastmod>2024-04-13T15:13:25+03:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/series/nes-internals/ppu-background/</loc>
+    <loc>http://localhost:1313/series/ppu-background/</loc>
     <lastmod>2024-04-06T15:13:25+03:00</lastmod>
   </url><url>
-    <loc>http://localhost:1313/series/nes-internals/cpu/</loc>
+    <loc>http://localhost:1313/series/cpu/</loc>
     <lastmod>2024-03-14T15:13:25+03:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/posts/</loc>
@@ -33,9 +33,5 @@
     <lastmod>2024-01-10T00:00:00+00:00</lastmod>
   </url><url>
     <loc>http://localhost:1313/about/</loc>
-  </url><url>
-    <loc>http://localhost:1313/categories/</loc>
-  </url><url>
-    <loc>http://localhost:1313/tags/</loc>
   </url>
 </urlset>

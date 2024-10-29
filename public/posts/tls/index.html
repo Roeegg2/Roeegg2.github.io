@@ -1,640 +1,90 @@
 <!DOCTYPE html>
-<html><head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
-<title>Summary of Ulrich Drepper&#39;s legendary tls.pdf</title>
+<html lang="en-us">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="/css/fonts.css">
+<meta name="author" content="" />
+<meta name="description" content="" />
+<meta name="keywords" content="" />
+
+<meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
+<meta name="generator" content="Hugo 0.136.2">
+
+<link rel="canonical" href="http://localhost:1313/posts/tls/">
+<meta property="og:url" content="http://localhost:1313/posts/tls/">
+  <meta property="og:site_name" content="Roeegg2&#39;s Blog">
+  <meta property="og:title" content="Summary of Ulrich Drepper&#39;s legendary tls.pdf">
+  <meta property="og:description" content="Disclaimer: The targeted audience of this document is dynamic linker &amp; loader implementors, so important information for other tools (such as linkers and compilers) might be missing.
+This writeup is DEFINITELY not a substitute for the original document. It is highly recommended to read the original document before reading this summary. I wrote it to help me understand the document better, and to be able to reference things quickly if I forget something. It would be very hard to understand this mechanism without reading the original document first.">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2024-01-10T00:00:00+00:00">
+    <meta property="article:modified_time" content="2024-01-10T00:00:00+00:00">
+
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Summary of Ulrich Drepper&#39;s legendary tls.pdf">
+  <meta name="twitter:description" content="Disclaimer: The targeted audience of this document is dynamic linker &amp; loader implementors, so important information for other tools (such as linkers and compilers) might be missing.
+This writeup is DEFINITELY not a substitute for the original document. It is highly recommended to read the original document before reading this summary. I wrote it to help me understand the document better, and to be able to reference things quickly if I forget something. It would be very hard to understand this mechanism without reading the original document first.">
+
+
+  <meta itemprop="name" content="Summary of Ulrich Drepper&#39;s legendary tls.pdf">
+  <meta itemprop="description" content="Disclaimer: The targeted audience of this document is dynamic linker &amp; loader implementors, so important information for other tools (such as linkers and compilers) might be missing.
+This writeup is DEFINITELY not a substitute for the original document. It is highly recommended to read the original document before reading this summary. I wrote it to help me understand the document better, and to be able to reference things quickly if I forget something. It would be very hard to understand this mechanism without reading the original document first.">
+  <meta itemprop="datePublished" content="2024-01-10T00:00:00+00:00">
+  <meta itemprop="dateModified" content="2024-01-10T00:00:00+00:00">
+  <meta itemprop="wordCount" content="2134">
+
+<link rel="stylesheet" href="/css/layout.css" />
+
+
+<link rel="stylesheet" href="/css/default-dark.css" />
 
 
 
 
-<meta charset="utf-8">
-<meta name="X-UA-Compatible" content="IE=edge">
-<meta name="google-site-verification" content="">
-<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
-<meta content="telephone=no" name="format-detection">
-<meta name="description" content="">
-<meta name="renderer" content="webkit">
-<meta name="theme-color" content="#ffffff">
+<title>
 
 
+     Summary of Ulrich Drepper&#39;s legendary tls.pdf 
 
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-      <script src="/js/toc.js"></script>
-    
-    <link type="text/css" rel="stylesheet" href="/vendor/css/bootstrap.min.css">
-
-<link rel="stylesheet" href="/scss/dark-mode.min.cb53f1bee2b8900cb4f082afbf00175d6618f281cf9a2fe8619e3b52d20b5721.css" integrity="sha256-y1PxvuK4kAy08IKvvwAXXWYY8oHPmi/oYZ47UtILVyE=" media="screen">
-
-
-<link rel="stylesheet"
-          href="https://fonts.googleapis.com/css?family=Material+Icons">
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+</title>
 
 </head>
+
+
 <body>
-    	<div id="app"><div class="single-column-drawer-container" id="drawer"
-     v-bind:class="{ 'single-column-drawer-container-active': isDrawerOpen }">
-    <div class="drawer-content">
-        <div class="drawer-menu">
-            
-            
-            
-                
-                
-                
-                    
-                
-                
-                
-                <a class="a-block drawer-menu-item active" href="/posts">
-                    Single Posts
-                </a>
-                
-            
-                
-                
-                
-                
-                
-                <a class="a-block drawer-menu-item false" href="/series">
-                    Series
-                </a>
-                
-            
-                
-                
-                
-                
-                
-                <a class="a-block drawer-menu-item false" href="/about">
-                    About
-                </a>
-                
-            
-            
-            <div class="toc">
+<div class="main">
+<header>
 
+<div class="header-bar">
 
-	<div class="toc-content">
-	
-		
-		
-		
-		<center>- CATALOG -</center>
-		
-		
-		<ul>
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#disclaimer" class="nav-disclaimer">
-									Disclaimer:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#terminology" class="nav-terminology">
-									Terminology:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#general-summary" class="nav-general-summary">
-									General Summary:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#tls-variant-i" class="nav-tls-variant-i">
-									TLS Variant I:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#tls-variant-ii" class="nav-tls-variant-ii">
-									TLS Variant II:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#static-tls" class="nav-static-tls">
-									Static TLS:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#dynamic-tls" class="nav-dynamic-tls">
-									Dynamic TLS:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#startup--later" class="nav-startup--later">
-									Startup &amp; Later
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#__tls_get_addr" class="nav-__tls_get_addr">
-									__tls_get_addr:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#statically-linked-executables" class="nav-statically-linked-executables">
-									Statically linked executables:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-							
-								</ul>
-							
-						
-						
-						
-							<li>
-								<a href="#tls-access-models-specifically-for-0x86_64" class="nav-tls-access-models-specifically-for-0x86_64">
-									TLS Access models (specifically for 0x86_64):
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#general-dynamic-model" class="nav-general-dynamic-model">
-									General dynamic model
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#implementation-example-for-x86_64" class="nav-implementation-example-for-x86_64">
-									Implementation example for x86_64
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-							
-								</ul>
-							
-						
-						
-						
-							<li>
-								<a href="#local-dynamic-model" class="nav-local-dynamic-model">
-									Local dynamic model
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#implementation-example-for-x86_64-1" class="nav-implementation-example-for-x86_64-1">
-									Implementation example for x86_64
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-							
-								</ul>
-							
-						
-						
-						
-							<li>
-								<a href="#initial-exec-model" class="nav-initial-exec-model">
-									Initial exec model
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#implementation-example-for-x86_64-2" class="nav-implementation-example-for-x86_64-2">
-									Implementation example for x86_64
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-							
-								</ul>
-							
-						
-						
-						
-							<li>
-								<a href="#local-exec-model" class="nav-local-exec-model">
-									Local exec model
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#implementation-example-for-x86_64-3" class="nav-implementation-example-for-x86_64-3">
-									Implementation example for x86_64
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-							
-								</ul>
-							
-								</ul>
-							
-						
-						
-						
-							<li>
-								<a href="#my-own-important-notes" class="nav-my-own-important-notes">
-									My own important notes
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#things-i-myself-dont-understand" class="nav-things-i-myself-dont-understand">
-									Things I myself don’t understand
-								</a>
-							</li>
-						
-						
-					
-				
-			
-		</ul>
-	</div>
+  <nav>
+    <div class="siteTitle">
+      <a href="http://localhost:1313/">Roeegg2&#39;s Blog</a>
+    </div> 
+
+    
+    
+    <a class="nav-item" href="/posts"><div class="nav-item-title">Single Posts</div></a>
+    
+    <a class="nav-item" href="/series"><div class="nav-item-title">Series</div></a>
+    
+    <a class="nav-item" href="/about"><div class="nav-item-title">About</div></a>
+    
+
+  </nav>
 
 </div>
-            
-        </div>
-    </div>
-</div>
-<transition name="fade">
-    <div id="drawer-mask" v-bind:class="{ 'single-column-drawer-mask': mounted }" v-if="isDrawerOpen" v-on:click="toggleDrawer"></div>
-</transition>
-<nav id="navBar" class="navbar sticky-top navbar-light single-column-nav-container">
-    <div id="navBackground" class="nav-background"></div>
-    <div class="container container-narrow nav-content">
-        <button id="nav_dropdown_btn" class="nav-dropdown-toggle" type="button" v-on:click="toggleDrawer">
-            <i class="material-icons">
-                menu
-            </i>
-        </button>
-        <a id="navTitle" class="navbar-brand" href="http://localhost:1313/">
-            My New Hugo Site
-        </a>
-        
-        <button type="button" class="nav-darkmode-toggle" id="darkModeToggleButton2">
-            <i class="material-icons" id="darkModeToggleIcon2">
-                dark_mode
-            </i>
-        </button>
-        
-    </div>
-</nav>
-<div class="single-column-header-container" id="pageHead"
-     v-bind:style="{ transform: 'translateZ(0px) translateY('+.3*scrollY+'px)', opacity: 1-navOpacity }">
-    <a href="http://localhost:1313/">
-        <div class="single-column-header-title">My New Hugo Site</div>
-        
 
-    </a>
-</div>
+</header>
 
-            <div id="content">
-                <div id="streamContainer" class="stream-container">
 
-    <div class="post-list-container post-list-container-shadow">
-        <div class="post">
-            
-            
-            
-
-            <div class="post-head-wrapper-text-only"
-                
-            >
-                <div class="post-title">
-                    Summary of Ulrich Drepper&#39;s legendary tls.pdf
-                    
-                    <div class="post-meta">
-                        
-                        <time itemprop="datePublished">
-                            2024-01-10 00:00
-                        </time>
-                        
-
-                        
-
-                        
-                        
-                    </div>
-                </div>
-            </div>
-            
-            <div class="post-body-wrapper">
-                
-                <div class="post-body" v-pre>
-                
-                    <h2 id="disclaimer">Disclaimer:</h2>
+<article class="post">
+    <h1 class="title"> Summary of Ulrich Drepper&#39;s legendary tls.pdf </h1>
+    <div class="content"> <h2 id="disclaimer">Disclaimer:</h2>
 <ol>
 <li>
 <p>The targeted audience of this document is dynamic linker &amp; loader implementors, so important information for other tools (such as linkers and compilers) might be missing.</p>
@@ -892,608 +342,57 @@ ation which can be performed by compiler-generated code which uses variant I. Bu
 cannot be done by the compiler for architectures following variant II and there is also
 a good reason to not do it: deferred allocation (see below). - don&rsquo;t understand what this means</li>
 </ul>
+ </div>
+    <footer class="post-footer">
 
-                    
-                    <HR width="100%" id="EOF">
-		    <p style="color:#777;">Last modified on 2024-01-10</p>
-                    
-                </div>
-            </div>
+  <div class="post-footer-data">
             
-            
-            <nav class="post-pagination">
-
-                
-                <a class="newer-posts" href="/posts/elf-plt-and-got/">
-			Next<br>The PLT &#43; GOT, Lazy binding &#43; Eager binding
-                </a>
-                
-                
-                
-                <a class="older-posts" href="/about/">
-			Previous<br>About
-                </a>
-                
-            </nav>
-            <div class="post-comment-wrapper">
-                
-
-
-
-
-
-
-
-
-
-
-
-
-            </div>
-        </div>
-    </div>
-
-
-                    </div>
-            </div><div id="sideContainer" class="side-container">
-    
-    <a class="a-block nav-head false" href="http://localhost:1313/">
-    
-        <div class="nav-title">
-            My New Hugo Site
-        </div>
-        
-    </a>
-
-    <div class="nav-link-list">
-        
-        
-            
-            
-            
-                
-            
-            
-            
-            <a class="a-block nav-link-item active" href="/posts">
-                Single Posts
-            </a>
-            
-        
-            
-            
-            
-            
-            
-            <a class="a-block nav-link-item false" href="/series">
-                Series
-            </a>
-            
-        
-            
-            
-            
-            
-            
-            <a class="a-block nav-link-item false" href="/about">
-                About
-            </a>
-            
-        
-    </div>
-
-    
-
-    <div class="nav-footer">
-        
-Hugo Theme <a href="https://github.com/amazingrise/hugo-theme-diary">Diary</a> by <a href="https://risehere.net/">Rise</a>
-<br>
-Ported from <a href="https://mak1t0.cc/" target="_blank" rel="noreferrer noopener">Makito</a>'s <a href="https://github.com/SumiMakito/hexo-theme-journal/" target="_blank" rel="noreferrer noopener">Journal.</a> <br>
-<br>
-
-&copy;
-	
-	2024 My New Hugo Site
-	
-
-    </div>
-    
-</div><div id="extraContainer" class="extra-container">
-    <div class="toc-wrapper">
-        
-
-        
-        <div class="toc">
-
-
-	<div class="toc-content">
-	
-		
-		
-		
-		<center>- CATALOG -</center>
-		
-		
-		<ul>
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#disclaimer" class="nav-disclaimer">
-									Disclaimer:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#terminology" class="nav-terminology">
-									Terminology:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#general-summary" class="nav-general-summary">
-									General Summary:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#tls-variant-i" class="nav-tls-variant-i">
-									TLS Variant I:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#tls-variant-ii" class="nav-tls-variant-ii">
-									TLS Variant II:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#static-tls" class="nav-static-tls">
-									Static TLS:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#dynamic-tls" class="nav-dynamic-tls">
-									Dynamic TLS:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#startup--later" class="nav-startup--later">
-									Startup &amp; Later
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#__tls_get_addr" class="nav-__tls_get_addr">
-									__tls_get_addr:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#statically-linked-executables" class="nav-statically-linked-executables">
-									Statically linked executables:
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-							
-								</ul>
-							
-						
-						
-						
-							<li>
-								<a href="#tls-access-models-specifically-for-0x86_64" class="nav-tls-access-models-specifically-for-0x86_64">
-									TLS Access models (specifically for 0x86_64):
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#general-dynamic-model" class="nav-general-dynamic-model">
-									General dynamic model
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#implementation-example-for-x86_64" class="nav-implementation-example-for-x86_64">
-									Implementation example for x86_64
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-							
-								</ul>
-							
-						
-						
-						
-							<li>
-								<a href="#local-dynamic-model" class="nav-local-dynamic-model">
-									Local dynamic model
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#implementation-example-for-x86_64-1" class="nav-implementation-example-for-x86_64-1">
-									Implementation example for x86_64
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-							
-								</ul>
-							
-						
-						
-						
-							<li>
-								<a href="#initial-exec-model" class="nav-initial-exec-model">
-									Initial exec model
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#implementation-example-for-x86_64-2" class="nav-implementation-example-for-x86_64-2">
-									Implementation example for x86_64
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-							
-								</ul>
-							
-						
-						
-						
-							<li>
-								<a href="#local-exec-model" class="nav-local-exec-model">
-									Local exec model
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-							
-								
-									<ul>
-								
-							
-						
-						
-							<li>
-								<a href="#implementation-example-for-x86_64-3" class="nav-implementation-example-for-x86_64-3">
-									Implementation example for x86_64
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-							
-								</ul>
-							
-								</ul>
-							
-						
-						
-						
-							<li>
-								<a href="#my-own-important-notes" class="nav-my-own-important-notes">
-									My own important notes
-								</a>
-							</li>
-						
-						
-					
-				
-			
-				
-				
-					
-						
-						
-						
-						
-						
-							<li>
-								<a href="#things-i-myself-dont-understand" class="nav-things-i-myself-dont-understand">
-									Things I myself don’t understand
-								</a>
-							</li>
-						
-						
-					
-				
-			
-		</ul>
-	</div>
-
-</div>
-        
-    </div>
-    <div class="pagination">
-        <a id="globalBackToTop" class="pagination-action animated-visibility" href="#top"
-            :class="{ invisible: scrollY == 0 }">
-            <i class="material-icons pagination-action-icon">
-                keyboard_arrow_up
-            </i>
-        </a>
-        
-        <a type="button" class="pagination-action" id="darkModeToggleButton">
-            <span class="material-icons pagination-action-icon" id="darkModeToggleIcon">
-                dark_mode
-            </span>
-        </a>
-        
-        
-    </div>
+<div class="tags">
+  
 </div>
 
-<div id="single-column-footer">
-Hugo Theme <a href="https://github.com/amazingrise/hugo-theme-diary">Diary</a> by <a href="https://risehere.net/">Rise</a>
-<br>
-Ported from <a href="https://mak1t0.cc/" target="_blank" rel="noreferrer noopener">Makito</a>'s <a href="https://github.com/SumiMakito/hexo-theme-journal/" target="_blank" rel="noreferrer noopener">Journal.</a> <br>
-<br>
-
-&copy;
-	
-	2024 My New Hugo Site
-	
-</div>
-            </div>
     
-    <script src="/js/journal.js"></script></body>
+    <div class="date"> Published: 2024-01-10</div>
+  </div>
+</footer>
+
+
+
+</article>
+
+  <footer>
+
+  <div class="social-links-footer">
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  <div class="social-link">
+  
+  </div>
+
+</div>
+
+
+  <div class="copyright">  </div>
+
+  <div class="poweredby">
+    Powered by <a href="https://gohugo.io/">Hugo</a>.
+  </div>
+
+  </footer>
+
+</div> 
+
+</body>
 </html>
+

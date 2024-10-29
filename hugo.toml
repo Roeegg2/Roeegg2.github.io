@@ -1,7 +1,7 @@
 baseURL = 'https://roeegg2.github.io/'
 languageCode = 'en-us'
-title = 'My New Hugo Site'
-theme = 'diary'
+title = "Roeegg2's Blog"
+theme = 'dusk'
 
 [[menu.main]]
     url = "/posts"
@@ -17,3 +17,9 @@ theme = 'diary'
     url = "/about"
     name = "About"
     weight = 4
+
+[params]
+	theme_colors = "default-dark"
+	
+[taxonomies]
+	series = "series"
