@@ -4,22 +4,19 @@ title = "Roeegg2's Blog"
 theme = 'dusk'
 
 [[menu.main]]
-    url = "/posts"
-    name = "Single Posts"
-    weight = 1
+    weight = 3
+    name = "Tags"
+    identifier = "tags"
+    url = "/tags/"
 
 [[menu.main]]
-    url = "/series"
-    name = "Series"
-    weight = 2
-
-[[menu.main]]
-    url = "/about"
-    name = "About"
     weight = 4
+    name = "About"
+    url = "/about"
+    identifier = "about"
 
 [params]
 	theme_colors = "default-dark"
 	
 [taxonomies]
-	series = "series"
+	tags = "tags"

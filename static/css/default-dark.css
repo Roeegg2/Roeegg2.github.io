@@ -46,7 +46,7 @@ pre {
 }
 
 code {
-  background-color: transparent;
+  background-color: #3c3d3c;
 }
 
 /* 
@@ -54,7 +54,7 @@ code {
  * looks better if overwritten.
  * */
 .post .content .highlight table {
-  background-color: var(--main-bg-color) !important;
+  background-color: #3c3d3c;
 }
 
 blockquote {
