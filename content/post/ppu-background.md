@@ -1,9 +1,10 @@
 ---
 title: "The NES Internals Series: chapter 2 - PPU Background"
-series-name: NES Internals
+series-name: "NES Internals"
 chapter: 2
 date: 2024-04-06 15:13:25 +0300
 draft: false
+tags : ["nes", "emulation", "assembly"]
 ---
 
 ## Prologue

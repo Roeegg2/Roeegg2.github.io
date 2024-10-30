@@ -1,9 +1,10 @@
 ---
 title: "The NES Internals Series: chapter 5 - The Standard Controller"
-series-name: NES Internals
+series-name: "NES Internals"
 chapter: 5
 date: 2024-04-23 15:13:25 +0300
 draft: false
+tags : ["nes", "emulation", "assembly"]
 ---
 
 These are pretty straight forward.

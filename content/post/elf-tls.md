@@ -2,6 +2,7 @@
 title: Summary of Ulrich Drepper's legendary tls.pdf
 draft: false
 date: 2024-01-10
+tags : ["elf", "glibc", "x86_64"]
 ---
 
 ## Disclaimer:
@@ -49,7 +50,7 @@ To refer to a structure belonging to some thread `i`, the notation `STRUCTUREi` 
 
 ### TLS Variant I:
 
-![Variant I](./assets/tls-variant1.png)
+![Variant I](/images/tls-variant1.png)
 
 - First thing `DTVi` points to is a number `GENi` which is used to resize the DTV.
 
@@ -63,7 +64,7 @@ To refer to a structure belonging to some thread `i`, the notation `STRUCTUREi` 
 
 ### TLS Variant II:
 
-![Variant II](./assets/tls-variant2.png)
+![Variant II](/images/tls-variant2.png)
 
 - Almost everything in Variant I applies here too, only differences are:
   1. The TLS blocks are allocated to the _left_ of `TPi` 

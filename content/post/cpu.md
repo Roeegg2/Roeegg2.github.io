@@ -1,9 +1,10 @@
 ---
 title: "The NES Internals Series: chapter 1 - The CPU"
-series-name: NES Internals
+series-name: "NES Internals"
 chapter: 1
 date: 2024-03-14 15:13:25 +0300
 draft: false
+tags : ["nes", "emulation", "assembly", "MOS 6502"]
 ---
 
 ## Introduction
